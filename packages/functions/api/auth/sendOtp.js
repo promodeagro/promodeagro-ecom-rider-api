@@ -1,0 +1,34 @@
+const axios = require("axios");
+const { randomInt } = require("node:crypto");
+
+const sms_auth = process.env.SMS_AUTH;
+const sms_auth_token = process.env.SMS_AUTH_TOKEN;
+
+export const sendOtp = async (otp, number) => {
+	const url =
+		"https://restapi.smscountry.com/v0.1/Accounts/" + sms_auth + "/SMSes/";
+	const header = Buffer.from(
+		`${sms_auth}:${sms_auth_token}`,
+		"utf-8"
+	).toString("base64");
+	const res = await axios.post(
+		url,
+		{
+			Text: `${otp} is your OTP to login to Promode Agro Application. Team Promode Agro Farms.`,
+			Number: number,
+			SenderId: "PROMAG",
+			Tool: "API",
+		},
+		{
+			headers: {
+				"Content-Type": "application/json",
+				Accept: "application/json",
+				Authorization: "Basic " + header,
+			},
+		}
+	);
+};
+
+export function generateOtp() {
+	return randomInt(100000, 999999);
+}

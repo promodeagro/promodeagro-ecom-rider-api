@@ -1,0 +1,25 @@
+{
+  "name": "@ecom-test-api/functions",
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "sst bind vitest",
+    "typecheck": "tsc -noEmit"
+  },
+  "dependencies": {
+    "@aws-sdk/client-cognito-identity-provider": "^3.616.0",
+    "@aws-sdk/client-dynamodb": "^3.623.0",
+    "@aws-sdk/lib-dynamodb": "^3.623.0",
+    "@aws-sdk/util-dynamodb": "^3.623.0",
+    "@aws-sdk/s3-request-presigner": "^3.616.0",
+    "@middy/core": "^4.7.0",
+    "@middy/error-logger": "^4.7.0",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.4",
+    "@types/aws-lambda": "^8.10.145",
+    "vitest": "^2.1.2",
+    "sst": "^3.1.61"
+  }
+}
