@@ -8,7 +8,7 @@ import {
 	QueryCommand,
 } from "@aws-sdk/lib-dynamodb";
 
-const client = new DynamoDBClient();
+const client = new DynamoDBClient({region: "ap-south-1"});
 const docClient = DynamoDBDocumentClient.from(client);
 
 export async function update(tableName, key, updateData) {

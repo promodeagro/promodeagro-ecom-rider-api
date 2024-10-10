@@ -2,7 +2,8 @@ import { z } from "zod";
 import middy from "@middy/core";
 import { bodyValidator } from "../util/bodyValidator";
 import { errorHandler } from "../util/errorHandler";
-import { numberExists, saveOtp, createRider } from ".";
+import { numberExists, saveOtp } from ".";
+import { createRider } from "../rider/index";
 import { generateOtp, sendOtp } from "./sendOtp";
 
 const phoneNumberSchema = z.object({
@@ -13,7 +14,9 @@ const phoneNumberSchema = z.object({
 
 export const signin = middy(async (event) => {
 	const { number } = JSON.parse(event.body);
-	const item = numberExists(number);
+	console.log("number ", number);
+	const item = await numberExists(number);
+	console.log("item ", item);
 	const otp = generateOtp();
 	if (item && item.length > 0) {
 		await saveOtp(item[0].id, otp);
