@@ -57,12 +57,13 @@ export function API({ app, stack }: StackContext) {
       }
     },
     routes: {
-      "POST /signin": {
+      "POST /auth/signin": {
         function: {
           handler: "packages/functions/api/auth/auth.signin",
           bind: [SMS_AUTH, SMS_AUTH_TOKEN]
         }
       },
+      "POST /auth/validate-otp": "packages/functions/api/auth/auth.validateOtpHandler",
       "PUT /rider/personal-details": "packages/functions/api/rider/update.updatePersonalDetails",
       "PUT /rider/bank-details": "packages/functions/api/rider/update.updatebankDetails",
       "PUT /rider/document-details": "packages/functions/api/rider/update.updateDocumentDetails",

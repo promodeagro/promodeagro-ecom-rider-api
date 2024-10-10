@@ -1,8 +1,8 @@
-import { z } from "zod";
+import { number, z } from "zod";
 import middy from "@middy/core";
 import { bodyValidator } from "../util/bodyValidator";
 import { errorHandler } from "../util/errorHandler";
-import { numberExists, saveOtp } from ".";
+import { numberExists, saveOtp, validateOtp } from ".";
 import { createRider } from "../rider/index";
 import { generateOtp, sendOtp } from "./sendOtp";
 
@@ -14,9 +14,7 @@ const phoneNumberSchema = z.object({
 
 export const signin = middy(async (event) => {
 	const { number } = JSON.parse(event.body);
-	console.log("number ", number);
 	const item = await numberExists(number);
-	console.log("item ", item);
 	const otp = generateOtp();
 	if (item && item.length > 0) {
 		await saveOtp(item[0].id, otp);
@@ -38,4 +36,19 @@ export const signin = middy(async (event) => {
 	};
 })
 	.use(bodyValidator(phoneNumberSchema))
+	.use(errorHandler());
+
+const validateOtpSchema = z.object({
+	number: phoneNumberSchema.shape.number,
+	otp: z.string().regex(/^\d{6}$/, {
+		message: "Otp. Must be exactly 6 digits.",
+	}),
+});
+
+export const validateOtpHandler = middy(async (event) => {
+	const { otp, number } = JSON.parse(event.body);
+
+	return validateOtp(otp, number);
+})
+	.use(bodyValidator(validateOtpSchema))
 	.use(errorHandler());
