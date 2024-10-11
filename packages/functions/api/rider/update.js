@@ -76,5 +76,4 @@ export const submitRiderProfile = middy(async (event) => {
 	}
 	return await submitProfile(id);
 })
-	.use(bodyValidator(documentSchema))
 	.use(errorHandler());
