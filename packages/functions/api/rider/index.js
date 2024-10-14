@@ -9,6 +9,7 @@ import {
 	QueryCommand,
 } from "@aws-sdk/lib-dynamodb";
 import { save, update } from "../common/db";
+import crypto from "crypto";
 
 const client = new DynamoDBClient({ region: "ap-south-1" });
 const docClient = DynamoDBDocumentClient.from(client);
@@ -85,18 +86,22 @@ export const updatebank = async (id, item) => {
 	);
 };
 
-export const updateDocument = async (id, item) => {
+export const updateDocument = async (id, req) => {
 	const rider = await get(id);
 	const status = JSON.parse(rider.profileStatus);
 	status.documentsCompleted = true;
 	const updatedStatus = JSON.stringify(status);
+	const mod = Object.keys(req).map((item) => ({
+		[item]: doc[item],
+		verified: false,
+	}));
 	return await update(
 		riderTable,
 		{
 			id: id,
 		},
 		{
-			documents: JSON.stringify(item),
+			documents: JSON.stringify(mod),
 			profileStatus: updatedStatus,
 			updatedAt: new Date().toISOString(),
 		}
