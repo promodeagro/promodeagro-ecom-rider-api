@@ -23,14 +23,14 @@ export const createRider = async (number, otp) => {
 		number: number,
 		otp: otp,
 		otpExpire: Math.floor(Date.now() / 1000) + 180,
-		profileStatus: JSON.stringify({
+		profileStatus: {
 			personalInfoCompleted: false,
 			bankDetailsCompleted: false,
 			documentsCompleted: false,
-		}),
-		personalDetails: "{}",
-		bankDetails: "{}",
-		documents: "{}",
+		},
+		personalDetails: {},
+		bankDetails: {},
+		documents: {},
 		reviewStatus: "not_submitted",
 		submittedAt: null,
 		accountVerified: false,
@@ -52,17 +52,16 @@ export const get = async (id) => {
 export const updatePersonal = async (id, item) => {
 	const rider = await get(id);
 	console.log("rider ", rider);
-	const status = JSON.parse(rider.profileStatus);
+	const status = rider.profileStatus;
 	status.personalInfoCompleted = true;
-	const updatedStatus = JSON.stringify(status);
 	return await update(
 		riderTable,
 		{
 			id: id,
 		},
 		{
-			personalDetails: JSON.stringify(item),
-			profileStatus: updatedStatus,
+			personalDetails: item,
+			profileStatus: status,
 			updatedAt: new Date().toISOString(),
 		}
 	);
@@ -70,17 +69,16 @@ export const updatePersonal = async (id, item) => {
 
 export const updatebank = async (id, item) => {
 	const rider = await get(id);
-	const status = JSON.parse(rider.profileStatus);
+	const status = rider.profileStatus;
 	status.bankDetailsCompleted = true;
-	const updatedStatus = JSON.stringify(status);
 	return await update(
 		riderTable,
 		{
 			id: id,
 		},
 		{
-			bankDetails: JSON.stringify(item),
-			profileStatus: updatedStatus,
+			bankDetails: item,
+			profileStatus: status,
 			updatedAt: new Date().toISOString(),
 		}
 	);
@@ -88,11 +86,10 @@ export const updatebank = async (id, item) => {
 
 export const updateDocument = async (id, req) => {
 	const rider = await get(id);
-	const status = JSON.parse(rider.profileStatus);
+	const status = rider.profileStatus;
 	status.documentsCompleted = true;
-	const updatedStatus = JSON.stringify(status);
 	const mod = Object.keys(req).map((item) => ({
-		[item]: doc[item],
+		[item]: req[item],
 		verified: false,
 	}));
 	return await update(
@@ -101,8 +98,8 @@ export const updateDocument = async (id, req) => {
 			id: id,
 		},
 		{
-			documents: JSON.stringify(mod),
-			profileStatus: updatedStatus,
+			documents: mod,
+			profileStatus: status,
 			updatedAt: new Date().toISOString(),
 		}
 	);
@@ -110,7 +107,7 @@ export const updateDocument = async (id, req) => {
 
 export const submitProfile = async (id) => {
 	const rider = await get(id);
-	const status = JSON.parse(rider.profileStatus);
+	const status = rider.profileStatus;
 	if (
 		status.personalInfoCompleted &&
 		status.bankDetailsCompleted &&
