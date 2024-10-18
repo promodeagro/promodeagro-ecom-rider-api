@@ -1,5 +1,7 @@
 import { StackContext, Api, Table, Config, Bucket } from "sst/constructs";
 import * as iam from "aws-cdk-lib/aws-iam";
+import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
+
 
 export function API({ app, stack }: StackContext) {
 
@@ -49,7 +51,20 @@ export function API({ app, stack }: StackContext) {
     }
   );
 
-  const tables = [ridersTable]
+  const runsheetTable = new Table(
+    stack,
+    "runsheetTable", {
+    cdk: { table: dynamodb.Table.fromTableArn(stack, "RUNSHEET_TABLE", isProd ? "arn:aws:dynamodb:ap-south-1:851725323791:table/prod-promodeagro-admin-runsheetTable" : "arn:aws:dynamodb:ap-south-1:851725323791:table/dev-promodeagro-admin-runsheetTable") }
+  }
+  )
+  const ordersTable = new Table(
+    stack,
+    "ordersTable", {
+    cdk: { table: dynamodb.Table.fromTableArn(stack, "ORDER_TABLE", isProd ? "arn:aws:dynamodb:ap-south-1:851725323791:table/prod-promodeagro-admin-OrdersTable" : "arn:aws:dynamodb:ap-south-1:851725323791:table/dev-promodeagro-admin-OrdersTable") }
+  }
+  )
+
+  const tables = [ridersTable, runsheetTable, ordersTable]
   const api = new Api(stack, "api", {
     defaults: {
       function: {
@@ -68,6 +83,11 @@ export function API({ app, stack }: StackContext) {
       "PUT /rider/bank-details": "packages/functions/api/rider/update.updatebankDetails",
       "PUT /rider/document-details": "packages/functions/api/rider/update.updateDocumentDetails",
       "PUT /rider/submit/{id}": "packages/functions/api/rider/update.submitRiderProfile",
+      "GET /rider/{id}/runsheet": "packages/functions/api/runsheet/runsheet.listRunsheetsHandler",
+      "GET /rider/{id}/runsheet/{runsheetId}": "packages/functions/api/runsheet/runsheet.getRunsheetHandler",
+      "GET /rider/{id}/runsheet/{runsheetId}/accept": "packages/functions/api/runsheet/runsheet.acceptRunsheetHandler",
+      "PUT /rider/{id}/runsheet/{runsheetId}/order/{orderId}/complete": "packages/functions/api/runsheet/runsheet.confirmOrderHandler",
+      "PUT /rider/{id}/runsheet/{runsheetId}/order/{orderId}/cancel": "packages/functions/api/runsheet/runsheet.cancelOrderHandler",
       "GET /uploadUrl": {
         function: {
           handler:
