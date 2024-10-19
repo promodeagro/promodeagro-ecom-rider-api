@@ -2,7 +2,7 @@
 
 ## **Authentication and Rider Profile Management**
 
-### **1. Sign In**
+### **Sign In**
 
 -   **Endpoint:** `POST /auth/signin`
 
@@ -12,7 +12,7 @@
 { "number": "9876543210" }
 ```
 
-### **2. Validate OTP**
+### **Validate OTP**
 
 -   **Endpoint:** `POST /auth/validate-otp`
 
@@ -22,7 +22,29 @@
 { "number": "9876543210", "otp": "123456" }
 ```
 
-### **3. Update Personal Details**
+### **Refresh Token**
+
+-   **Endpoint:** `POST /auth/refresh-token`
+
+## Description
+This endpoint allows clients to refresh their access tokens using a valid refresh token. It generates a new access token for the user.
+
+## Request
+
+### Headers
+- **Content-Type**: `application/json`
+
+### Body
+The request body must be a JSON object containing the `refreshToken`. 
+
+#### Example
+```json
+{
+  "refreshToken": "your_refresh_token_here"
+} 
+```
+
+### **Update Personal Details**
 
 -   **Endpoint:** `PUT /rider/personal-details`
 
@@ -46,7 +68,7 @@
 }
 ```
 
-### **4. Update Bank Details**
+### **Update Bank Details**
 
 -   **Endpoint:** `PUT /rider/bank-details`
 
@@ -61,7 +83,7 @@
 }
 ```
 
-### **5. Update Document Details**
+### **Update Document Details**
 
 -   **Endpoint:** `PUT /rider/document-details`
 
@@ -80,7 +102,7 @@
 }
 ```
 
-### **6. Submit Rider Profile**
+### **Submit Rider Profile**
 
 -   **Endpoint:** `PUT /rider/submit/{id}`
 
@@ -90,7 +112,7 @@
 { "id": "uuid" }
 ```
 
-### **7. Get Upload URL**
+### **Get Upload URL**
 
 -   **Endpoint:** `GET /uploadUrl`
 

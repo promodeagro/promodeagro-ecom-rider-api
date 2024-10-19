@@ -1,10 +1,11 @@
-import { number, z } from "zod";
+import { z } from "zod";
 import middy from "@middy/core";
 import { bodyValidator } from "../util/bodyValidator";
 import { errorHandler } from "../util/errorHandler";
 import { numberExists, saveOtp, validateOtp } from ".";
 import { createRider } from "../rider/index";
 import { generateOtp, sendOtp } from "./sendOtp";
+import { authorizer, refreshAccessToken } from "./jwt";
 
 const phoneNumberSchema = z.object({
 	number: z.string().regex(/^\d{10}$/, {
@@ -47,8 +48,22 @@ const validateOtpSchema = z.object({
 
 export const validateOtpHandler = middy(async (event) => {
 	const { otp, number } = JSON.parse(event.body);
-
 	return validateOtp(otp, number);
 })
 	.use(bodyValidator(validateOtpSchema))
+	.use(errorHandler());
+
+export const authorizerHandler = async (event) => {
+	return authorizer(event);
+};
+
+const refreshTokenSchema = z.object({
+	refreshToken: z.string(),
+});
+
+export const refreshAccessTokenHandler = middy(async (event) => {
+	const { refreshToken } = JSON.parse(event.body);
+	return refreshAccessToken(refreshToken);
+})
+	.use(bodyValidator(refreshTokenSchema))
 	.use(errorHandler());

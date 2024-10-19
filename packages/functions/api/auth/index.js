@@ -9,6 +9,7 @@ import {
 	QueryCommand,
 } from "@aws-sdk/lib-dynamodb";
 import { save, update } from "../common/db";
+import { generateTokens } from "./jwt";
 
 const client = new DynamoDBClient({ region: "ap-south-1" });
 const docClient = DynamoDBDocumentClient.from(client);
@@ -50,19 +51,19 @@ export const validateOtp = async (otp, number) => {
 	const params = {
 		TableName: riderTable,
 		IndexName: "numberIndex",
-		KeyConditionExpression: "#num = :num",
+		KeyConditionExpression: "#number = :number",
 		ExpressionAttributeNames: {
-			"#num": "number",
+			"#number": "number",
 		},
 		ExpressionAttributeValues: {
-			":num": number,
+			":number": number,
 		},
 		Limit: 1,
 	};
 	const result = await docClient.send(new QueryCommand(params));
-	if (result.Items || result.Items.length === 0) {
+	if (!result.Items || result.Items.length === 0) {
 		return {
-			statusCode: 404,
+			statusCode: 400,
 			message: JSON.stringify({
 				message: "Number not found",
 			}),
@@ -72,19 +73,21 @@ export const validateOtp = async (otp, number) => {
 	const expired = result.Items[0].otpExpire;
 	if (Math.floor(Date.now() / 1000) > expired) {
 		return {
-			statusCode: 400,
+			statusCode: 401,
 			message: JSON.stringify({
 				message: "otp expired",
 			}),
 		};
 	}
-	if (resOtp === otp) {
-		//TODO - return jwt tokens
+	console.log({resOtp, otp});
+	if (resOtp == otp) {
+		const tokens = generateTokens({
+			id: result.Items[0].id,
+			number: number,
+		});
 		return {
 			statusCode: 200,
-			message: JSON.stringify({
-				message: "authenticated successfully",
-			}),
+			body: JSON.stringify(tokens),
 		};
 	}
 	return {

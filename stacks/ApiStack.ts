@@ -1,4 +1,4 @@
-import { StackContext, Api, Table, Config, Bucket } from "sst/constructs";
+import { StackContext, Api, Table, Config, Bucket, Function } from "sst/constructs";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 
@@ -9,6 +9,8 @@ export function API({ app, stack }: StackContext) {
 
   const SMS_AUTH = new Config.Secret(stack, "SMS_AUTH");
   const SMS_AUTH_TOKEN = new Config.Secret(stack, "SMS_AUTH_TOKEN");
+  const JWT_SECRET = new Config.Secret(stack, "JWT_SECRET");
+  const JWT_REFRESH_SECRET = new Config.Secret(stack, "JWT_REFRESH_SECRET");
 
   const mediaBucket = new Bucket(stack, "mediaBucket", {
     name: isProd ? "promodeagro-rider-media-bucket" : "dev-promodeagro-rider-media-bucket",
@@ -66,19 +68,43 @@ export function API({ app, stack }: StackContext) {
 
   const tables = [ridersTable, runsheetTable, ordersTable]
   const api = new Api(stack, "api", {
+    authorizers: {
+      myAuthorizer: {
+        type: "lambda",
+        function: new Function(stack, "Authorizer", {
+          handler: "packages/functions/api/auth/auth.authorizerHandler",
+        }),
+        resultsCacheTtl: "30 seconds",
+      }
+    },
     defaults: {
+      authorizer: "myAuthorizer",
       function: {
         bind: tables
       }
     },
     routes: {
       "POST /auth/signin": {
+        authorizer: "none",
         function: {
           handler: "packages/functions/api/auth/auth.signin",
-          bind: [SMS_AUTH, SMS_AUTH_TOKEN]
+          bind: [SMS_AUTH, SMS_AUTH_TOKEN, JWT_SECRET, JWT_REFRESH_SECRET]
         }
       },
-      "POST /auth/validate-otp": "packages/functions/api/auth/auth.validateOtpHandler",
+      "POST /auth/validate-otp": {
+        authorizer: "none",
+        function: {
+          handler: "packages/functions/api/auth/auth.validateOtpHandler",
+          bind: [JWT_SECRET, JWT_REFRESH_SECRET]
+        }
+      },
+      "POST /auth/refresh-token": {
+        authorizer: "none",
+        function: {
+          handler: "packages/functions/api/auth/auth.refreshAccessTokenHandler",
+          bind: [JWT_SECRET, JWT_REFRESH_SECRET]
+        }
+      },
       "PUT /rider/personal-details": "packages/functions/api/rider/update.updatePersonalDetails",
       "PUT /rider/bank-details": "packages/functions/api/rider/update.updatebankDetails",
       "PUT /rider/document-details": "packages/functions/api/rider/update.updateDocumentDetails",
@@ -102,6 +128,8 @@ export function API({ app, stack }: StackContext) {
   stack.addOutputs({
     ApiEndpoint: api.url,
     sms_auth: SMS_AUTH.name,
-    sms_auth_token: SMS_AUTH_TOKEN.name
+    sms_auth_token: SMS_AUTH_TOKEN.name,
+    jwt_secret: JWT_SECRET.name,
+    jwt_refresh_secret: JWT_REFRESH_SECRET.name
   });
 }
