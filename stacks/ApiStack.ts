@@ -66,13 +66,13 @@ export function API({ app, stack }: StackContext) {
   }
   )
 
-  const tables = [ridersTable, runsheetTable, ordersTable]
   const api = new Api(stack, "api", {
     authorizers: {
       myAuthorizer: {
         type: "lambda",
         function: new Function(stack, "Authorizer", {
           handler: "packages/functions/api/auth/auth.authorizerHandler",
+          bind: [ridersTable, JWT_SECRET, JWT_REFRESH_SECRET],
         }),
         resultsCacheTtl: "30 seconds",
       }
@@ -80,7 +80,7 @@ export function API({ app, stack }: StackContext) {
     defaults: {
       authorizer: "myAuthorizer",
       function: {
-        bind: tables
+        bind: [ridersTable, runsheetTable, ordersTable],
       }
     },
     routes: {

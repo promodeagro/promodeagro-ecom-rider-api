@@ -64,35 +64,37 @@ export const validateOtp = async (otp, number) => {
 	if (!result.Items || result.Items.length === 0) {
 		return {
 			statusCode: 400,
-			message: JSON.stringify({
+			body: JSON.stringify({
 				message: "Number not found",
 			}),
 		};
 	}
 	const resOtp = result.Items[0].otp;
 	const expired = result.Items[0].otpExpire;
-	if (Math.floor(Date.now() / 1000) > expired) {
-		return {
-			statusCode: 401,
-			message: JSON.stringify({
-				message: "otp expired",
-			}),
-		};
-	}
-	console.log({resOtp, otp});
 	if (resOtp == otp) {
+		if (Math.floor(Date.now() / 1000) > expired) {
+			return {
+				statusCode: 401,
+				body: JSON.stringify({
+					message: "otp expired",
+				}),
+			};
+		}
+		const rider = result.Items[0];
+		delete rider.otp;
+		delete rider.otpExpire;
 		const tokens = generateTokens({
 			id: result.Items[0].id,
 			number: number,
 		});
 		return {
 			statusCode: 200,
-			body: JSON.stringify(tokens),
+			body: JSON.stringify({ tokens, ...rider }),
 		};
 	}
 	return {
 		statusCode: 401,
-		message: JSON.stringify({
+		body: JSON.stringify({
 			message: "Invalid OTP",
 		}),
 	};

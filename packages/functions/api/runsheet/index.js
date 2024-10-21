@@ -149,20 +149,55 @@ export const cancelOrder = async (runsheetId, orderId, reason) => {
 			}),
 		};
 	}
+	const order = await findById(ordersTable, id);
+	if (order.status == "cancelled") {
+		return {
+			statusCode: 400,
+			body: JSON.stringify({ message: "order already cancelled" }),
+		};
+	}
 	const cancellationData = {
 		status: "cancelled",
 		cancelledAt: new Date().toISOString(),
 		cancelReason: reason,
 		cancellationBy: "rider",
 	};
-	return await update(
-		ordersTable,
-		{
-			id: orderId,
-		},
-		{
-			status: "cancelled",
-			cancellationData: cancellationData,
-		}
-	);
+	const input = {
+		TransactItems: [
+			{
+				Update: {
+					TableName: orderTable,
+					Key: { id },
+					UpdateExpression:
+						"SET #status = :status, #cancellationData = :cancellationData",
+					ExpressionAttributeNames: {
+						"#status": "status",
+						"#cancellationData": "cancellationData",
+					},
+					ExpressionAttributeValues: {
+						":status": "cancelled",
+						":cancellationData": cancellationData,
+					},
+				},
+			},
+			...order.items.map((item) => ({
+				Update: {
+					TableName: inventoryTable,
+					Key: { id: item.productId },
+					UpdateExpression: "ADD stockQuantity :quantity",
+					ExpressionAttributeValues: {
+						":quantity": item.quantity,
+					},
+				},
+			})),
+		],
+	};
+	const command = new TransactWriteCommand(input);
+	await docClient.send(command);
+	return {
+		statusCode: 200,
+		body: JSON.stringify({
+			message: "order cancelled",
+		}),
+	};
 };
