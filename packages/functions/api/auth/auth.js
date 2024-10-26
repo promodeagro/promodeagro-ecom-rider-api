@@ -11,14 +11,23 @@ const phoneNumberSchema = z.object({
 	number: z.string().regex(/^\d{10}$/, {
 		message: "Invalid phone number. Must be exactly 10 digits.",
 	}),
+	userType: z.enum(["rider"]),
 });
 
+const createUser = async (number, otp, userType) => {
+	if (userType === "rider") {
+		return await createRider(number, otp);
+	} else {
+		return await createPacker(number, otp);
+	}
+};
+
 export const signin = middy(async (event) => {
-	const { number } = JSON.parse(event.body);
-	const item = await numberExists(number);
+	const { number, userType } = JSON.parse(event.body);
+	const item = await numberExists(number, userType);
 	const otp = generateOtp();
 	if (item && item.length > 0) {
-		await saveOtp(item[0].id, otp);
+		await saveOtp(item[0].id, otp, userType);
 		await sendOtp(otp, number);
 		return {
 			statusCode: 200,
@@ -27,7 +36,7 @@ export const signin = middy(async (event) => {
 			}),
 		};
 	}
-	await createRider(number, otp);
+	await createUser(number, otp, userType);
 	await sendOtp(otp, number);
 	return {
 		statusCode: 200,
@@ -44,11 +53,12 @@ const validateOtpSchema = z.object({
 	otp: z.string().regex(/^\d{6}$/, {
 		message: "Otp. Must be exactly 6 digits.",
 	}),
+	userType: z.enum(["rider", "packer"]),
 });
 
 export const validateOtpHandler = middy(async (event) => {
-	const { otp, number } = JSON.parse(event.body);
-	return validateOtp(otp, number);
+	const { otp, number, userType } = JSON.parse(event.body);
+	return validateOtp(otp, number, userType);
 })
 	.use(bodyValidator(validateOtpSchema))
 	.use(errorHandler());

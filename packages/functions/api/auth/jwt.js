@@ -38,7 +38,14 @@ export const authorizer = async (event) => {
 	try {
 		const token = event.authorizationToken.replace("Bearer ", "");
 		const decoded = jwt.verify(token, Config.JWT_SECRET);
-
+		const userType = decoded.userType;
+		let effect = "Deny";
+		if (userType === "rider" && event.methodArn.includes("/rider")) {
+			effect = "Allow";
+		}
+		if (userType === "packer" && event.methodArn.includes("/packer")) {
+			effect = "Allow";
+		}
 		return {
 			principalId: decoded.id,
 			policyDocument: {
@@ -46,7 +53,7 @@ export const authorizer = async (event) => {
 				Statement: [
 					{
 						Action: "execute-api:Invoke",
-						Effect: "Allow",
+						Effect: effect,
 						Resource: event.methodArn,
 					},
 				],
@@ -54,6 +61,7 @@ export const authorizer = async (event) => {
 			context: {
 				userId: decoded.id,
 				number: decoded.number,
+				userType: decoded.userType,
 			},
 		};
 	} catch (error) {
@@ -65,7 +73,7 @@ export const authorizer = async (event) => {
 				Statement: [
 					{
 						Action: "execute-api:Invoke",
-						Effect: "Deny",
+						Effect: effect,
 						Resource: event.methodArn,
 					},
 				],

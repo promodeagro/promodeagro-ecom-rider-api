@@ -57,13 +57,14 @@ const imageSchema = z.object({
 	image: z.string().url({
 		message: "delivered image is required to complete the delivery",
 	}),
+	via: z.enum(["cash", "upi"]).optional(),
 });
 
 export const confirmOrderHandler = middy(async (event) => {
 	let id = event.pathParameters.id;
 	let runsheetId = event.pathParameters.runsheetId;
 	let orderId = event.pathParameters.orderId;
-	const { image } = JSON.parse(event.body);
+	const { image, via } = JSON.parse(event.body);
 	if (!id || !runsheetId) {
 		return {
 			status: 400,
@@ -72,7 +73,7 @@ export const confirmOrderHandler = middy(async (event) => {
 			}),
 		};
 	}
-	return await confirmOrder(runsheetId, orderId, image);
+	return await confirmOrder(runsheetId, orderId, image, via);
 })
 	.use(bodyValidator(imageSchema))
 	.use(errorHandler());

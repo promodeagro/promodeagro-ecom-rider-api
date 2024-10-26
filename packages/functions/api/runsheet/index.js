@@ -36,8 +36,10 @@ export const listRunsheets = async (id) => {
 		},
 	};
 	const data = await docClient.send(new QueryCommand(params));
-	const allOrders = data.Items.flatMap((item) => item.orders);
-	const orderStatuses = await getOrderStatuses(allOrders);
+	const allOrdersSet = [
+		...new Set(data.Items.flatMap((item) => item.orders)),
+	];
+	const orderStatuses = await getOrderStatuses(allOrdersSet);
 
 	return data.Items.map((item) => {
 		const totalOrders = item.orders.length;
@@ -111,7 +113,7 @@ export const getRunsheet = async (id) => {
 	return runsheet;
 };
 
-export const confirmOrder = async (runsheetId, orderId, image) => {
+export const confirmOrder = async (runsheetId, orderId, image, via) => {
 	const runsheet = await findById(runsheetTable, runsheetId);
 	const exists = runsheet.orders.includes(orderId);
 	if (!exists) {
@@ -123,7 +125,22 @@ export const confirmOrder = async (runsheetId, orderId, image) => {
 		};
 	}
 	const order = await findById(ordersTable, orderId);
-	order.paymentDetails.status = "DONE";
+	if (order.paymentDetails.method == "cash") {
+		order.paymentDetails.status = "DONE";
+		order.paymentDetails.via = via;
+		return await update(
+			ordersTable,
+			{
+				id: orderId,
+			},
+			{
+				status: "delivered",
+				deliveredAt: new Date().toISOString(),
+				deliveredImage: image,
+				paymentDetails: order.paymentDetails,
+			}
+		);
+	}
 	return await update(
 		ordersTable,
 		{
@@ -133,7 +150,6 @@ export const confirmOrder = async (runsheetId, orderId, image) => {
 			status: "delivered",
 			deliveredAt: new Date().toISOString(),
 			deliveredImage: image,
-			paymentDetails: order.paymentDetails,
 		}
 	);
 };

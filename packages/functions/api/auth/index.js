@@ -15,10 +15,15 @@ const client = new DynamoDBClient({ region: "ap-south-1" });
 const docClient = DynamoDBDocumentClient.from(client);
 
 const riderTable = Table.ridersTable.tableName;
+const packerTable = Table.packerTable.tableName;
 
-export const numberExists = async (number) => {
+const getTableName = (userType) => {
+	return userType === "rider" ? riderTable : packerTable;
+};
+
+export const numberExists = async (number, userType) => {
 	const params = {
-		TableName: riderTable,
+		TableName: getTableName(userType),
 		IndexName: "numberIndex",
 		KeyConditionExpression: "#number = :number",
 		ExpressionAttributeNames: {
@@ -33,9 +38,9 @@ export const numberExists = async (number) => {
 	return res.Items;
 };
 
-export const saveOtp = async (id, otp) => {
+export const saveOtp = async (id, otp, userType) => {
 	await update(
-		riderTable,
+		getTableName(userType),
 		{
 			id: id,
 		},
@@ -47,9 +52,9 @@ export const saveOtp = async (id, otp) => {
 	);
 };
 
-export const validateOtp = async (otp, number) => {
+export const validateOtp = async (otp, number, userType) => {
 	const params = {
-		TableName: riderTable,
+		TableName: getTableName(userType),
 		IndexName: "numberIndex",
 		KeyConditionExpression: "#number = :number",
 		ExpressionAttributeNames: {
@@ -80,16 +85,17 @@ export const validateOtp = async (otp, number) => {
 				}),
 			};
 		}
-		const rider = result.Items[0];
-		delete rider.otp;
-		delete rider.otpExpire;
+		const user = result.Items[0];
+		delete user.otp;
+		delete user.otpExpire;
 		const tokens = generateTokens({
 			id: result.Items[0].id,
 			number: number,
+			userType: userType,
 		});
 		return {
 			statusCode: 200,
-			body: JSON.stringify({ tokens, ...rider }),
+			body: JSON.stringify({ tokens, ...user }),
 		};
 	}
 	return {

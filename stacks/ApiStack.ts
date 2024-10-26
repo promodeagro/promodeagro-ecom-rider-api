@@ -53,6 +53,23 @@ export function API({ app, stack }: StackContext) {
     }
   );
 
+  const packerTable = new Table(
+    stack,
+    "packerTable",
+    {
+      fields: {
+        id: "string",
+        number: "string",
+        otp: "string",
+        createdAt: "string",
+      },
+      primaryIndex: { partitionKey: "id" },
+      globalIndexes: {
+        numberIndex: { partitionKey: "number" }
+      }
+    }
+  );
+
   const runsheetTable = new Table(
     stack,
     "runsheetTable", {
@@ -66,21 +83,23 @@ export function API({ app, stack }: StackContext) {
   }
   )
 
+  const authorizerFun = new Function(stack, "Authorizer", {
+    handler: "packages/functions/api/auth/auth.authorizerHandler",
+    bind: [ridersTable, packerTable, JWT_SECRET, JWT_REFRESH_SECRET],
+  })
+
   const api = new Api(stack, "api", {
     authorizers: {
       myAuthorizer: {
         type: "lambda",
-        function: new Function(stack, "Authorizer", {
-          handler: "packages/functions/api/auth/auth.authorizerHandler",
-          bind: [ridersTable, JWT_SECRET, JWT_REFRESH_SECRET],
-        }),
+        function: authorizerFun,
         resultsCacheTtl: "30 seconds",
       }
     },
     defaults: {
       authorizer: "myAuthorizer",
       function: {
-        bind: [ridersTable, runsheetTable, ordersTable],
+        bind: [ridersTable, packerTable, runsheetTable, ordersTable],
       }
     },
     routes: {
@@ -114,7 +133,77 @@ export function API({ app, stack }: StackContext) {
       "GET /rider/{id}/runsheet/{runsheetId}/accept": "packages/functions/api/runsheet/runsheet.acceptRunsheetHandler",
       "PUT /rider/{id}/runsheet/{runsheetId}/order/{orderId}/complete": "packages/functions/api/runsheet/runsheet.confirmOrderHandler",
       "PUT /rider/{id}/runsheet/{runsheetId}/order/{orderId}/cancel": "packages/functions/api/runsheet/runsheet.cancelOrderHandler",
-      "GET /uploadUrl": {
+      "GET /packer/order": {
+        authorizer: "none",
+        function: {
+          handler: "packages/functions/api/packer/packer.listOrdersHandler"
+        }
+      },
+      "PATCH /packer/order/{id}": {
+        authorizer: "none",
+        function: {
+          handler: "packages/functions/api/packer/packer.packOrderHandler"
+        }
+      },
+      "GET /rider/uploadUrl": {
+        function: {
+          handler:
+            "packages/functions/api/media/getPreSignedS3url.handler",
+          bind: [mediaBucket],
+        },
+      }
+    },
+  });
+
+  const packerApi = new Api(stack, "packerApi", {
+    authorizers: {
+      myAuthorizer: {
+        type: "lambda",
+        function: authorizerFun,
+        resultsCacheTtl: "30 seconds",
+      }
+    },
+    defaults: {
+      authorizer: "myAuthorizer",
+      function: {
+        bind: [packerTable, ordersTable],
+      }
+    },
+    routes: {
+      "POST /auth/signin": {
+        authorizer: "none",
+        function: {
+          handler: "packages/functions/api/auth/auth.signin",
+          bind: [SMS_AUTH, SMS_AUTH_TOKEN, JWT_SECRET, JWT_REFRESH_SECRET]
+        }
+      },
+      "POST /auth/validate-otp": {
+        authorizer: "none",
+        function: {
+          handler: "packages/functions/api/auth/auth.validateOtpHandler",
+          bind: [JWT_SECRET, JWT_REFRESH_SECRET]
+        }
+      },
+      "POST /auth/refresh-token": {
+        authorizer: "none",
+        function: {
+          handler: "packages/functions/api/auth/auth.refreshAccessTokenHandler",
+          bind: [JWT_SECRET, JWT_REFRESH_SECRET]
+        }
+      },
+      "GET /packer/order": {
+        authorizer: "none",
+        function: {
+          handler: "packages/functions/api/packer/packer.listOrdersHandler"
+        }
+      },
+      "PATCH /packer/order/{id}": {
+        authorizer: "none",
+        function: {
+          handler: "packages/functions/api/packer/packer.packOrderHandler"
+        }
+      },
+      "GET /packer/uploadUrl": {
         function: {
           handler:
             "packages/functions/api/media/getPreSignedS3url.handler",
@@ -126,7 +215,8 @@ export function API({ app, stack }: StackContext) {
 
 
   stack.addOutputs({
-    ApiEndpoint: api.url,
+    RiderEndpoint: api.url,
+    PackerEndpoint: packerApi.url,
     sms_auth: SMS_AUTH.name,
     sms_auth_token: SMS_AUTH_TOKEN.name,
     jwt_secret: JWT_SECRET.name,

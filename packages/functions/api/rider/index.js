@@ -90,7 +90,8 @@ export const updateDocument = async (id, req) => {
 	status.documentsCompleted = true;
 	const mod = Object.keys(req).map((item) => ({
 		[item]: req[item],
-		verified: false,
+		verified: "pending",
+		rejectionReason: null,
 	}));
 	return await update(
 		riderTable,
