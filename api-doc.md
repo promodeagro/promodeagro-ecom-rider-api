@@ -95,14 +95,37 @@ The request body must be a JSON object containing the `refreshToken`.
 
 ```json
 {
-	"id": "uuid",
-	"userPhoto": "https://example.com/photo.jpg",
-	"aadharFront": "https://example.com/aadhar_front.jpg",
-	"aadharBack": "https://example.com/aadhar_back.jpg",
-	"pan": "https://example.com/pan.jpg",
-	"dl": "https://example.com/dl.jpg",
-	"vehicleImage": "https://example.com/vehicle.jpg",
-	"rcBook": "https://example.com/rcbook.jpg"
+	"id": "550e8400-e29b-41d4-a716-446655440000",
+	"documents": [
+		{
+			"name": "userPhoto",
+			"image": "https://example.com/photo.jpg"
+		},
+		{
+			"name": "aadharFront",
+			"image": "https://example.com/aadhar_front.jpg"
+		},
+		{
+			"name": "aadharBack",
+			"image": "https://example.com/aadhar_back.jpg"
+		},
+		{
+			"name": "pan",
+			"image": "https://example.com/pan.jpg"
+		},
+		{
+			"name": "dl",
+			"image": "https://example.com/dl.jpg"
+		},
+		{
+			"name": "vehicleImage",
+			"image": "https://example.com/vehicle.jpg"
+		},
+		{
+			"name": "rcBook",
+			"image": "https://example.com/rcbook.jpg"
+		}
+	]
 }
 ```
 

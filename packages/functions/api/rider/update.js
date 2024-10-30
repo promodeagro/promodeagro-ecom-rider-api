@@ -48,18 +48,17 @@ export const updatebankDetails = middy(async (event) => {
 
 const documentSchema = z.object({
 	id: z.string().uuid(),
-	userPhoto: z.string().url("User photo must be a valid URL"),
-	aadharFront: z.string().url("Aadhar front image must be a valid URL"),
-	aadharBack: z.string().url("Aadhar back image must be a valid URL"),
-	pan: z.string().url("PAN image must be a valid URL"),
-	dl: z.string().url("Driving license image must be a valid URL"),
-	vehicleImage: z.string().url("Vehicle image must be a valid URL"),
-	rcBook: z.string().url("RC Book image must be a valid URL"),
+	documents: z.array(
+		z.object({
+			name: z.string(),
+			image: z.string().url(),
+		})
+	),
 });
 
 export const updateDocumentDetails = middy(async (event) => {
-	const { id, ...req } = JSON.parse(event.body);
-	return await updateDocument(id, req);
+	const { id, documents } = JSON.parse(event.body);
+	return await updateDocument(id, documents);
 })
 	.use(bodyValidator(documentSchema))
 	.use(errorHandler());
@@ -75,5 +74,4 @@ export const submitRiderProfile = middy(async (event) => {
 		};
 	}
 	return await submitProfile(id);
-})
-	.use(errorHandler());
+}).use(errorHandler());

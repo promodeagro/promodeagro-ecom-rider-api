@@ -84,22 +84,25 @@ export const updatebank = async (id, item) => {
 	);
 };
 
-export const updateDocument = async (id, req) => {
+export const updateDocument = async (id, documents) => {
 	const rider = await get(id);
 	const status = rider.profileStatus;
 	status.documentsCompleted = true;
-	const mod = Object.keys(req).map((item) => ({
-		[item]: req[item],
-		verified: "pending",
-		rejectionReason: null,
-	}));
+	const modDocs = documents.map((doc) => {
+		const docs = {
+			name: doc.name,
+			image: doc.image,
+			verified: "pending",
+			rejectionReason: null,
+		};
+	});
 	return await update(
 		riderTable,
 		{
 			id: id,
 		},
 		{
-			documents: mod,
+			documents: modDocs,
 			profileStatus: status,
 			updatedAt: new Date().toISOString(),
 		}
