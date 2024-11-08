@@ -1,28 +1,23 @@
-import { Table } from "sst/node/table";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import {
 	DynamoDBDocumentClient,
-	PutCommand,
-	ScanCommand,
-	GetCommand,
-	UpdateCommand,
-	QueryCommand,
+	GetCommand
 } from "@aws-sdk/lib-dynamodb";
-import { save, update } from "../common/db";
 import crypto from "crypto";
+import { Table } from "sst/node/table";
+import { save, update } from "../common/db";
 
 const client = new DynamoDBClient({ region: "ap-south-1" });
 const docClient = DynamoDBDocumentClient.from(client);
 
-const riderTable = Table.ridersTable.tableName;
+const ridersTable = Table.ridersTable.tableName;
+const usersTable = Table.usersTable.tableName;
 
-export const createRider = async (number, otp) => {
+export const createRider = async (number) => {
 	const id = crypto.randomUUID();
 	const rider = {
 		id: id,
 		number: number,
-		otp: otp,
-		otpExpire: Math.floor(Date.now() / 1000) + 180,
 		profileStatus: {
 			personalInfoCompleted: false,
 			bankDetailsCompleted: false,
@@ -35,12 +30,12 @@ export const createRider = async (number, otp) => {
 		submittedAt: null,
 		accountVerified: false,
 	};
-	return await save(riderTable, rider);
+	return await save(usersTable, rider);
 };
 
 export const get = async (id) => {
 	const params = {
-		TableName: riderTable,
+		TableName: usersTable,
 		Key: {
 			id: id,
 		},
@@ -55,7 +50,7 @@ export const updatePersonal = async (id, item) => {
 	const status = rider.profileStatus;
 	status.personalInfoCompleted = true;
 	return await update(
-		riderTable,
+		usersTable,
 		{
 			id: id,
 		},
@@ -68,11 +63,12 @@ export const updatePersonal = async (id, item) => {
 };
 
 export const updatebank = async (id, item) => {
+	item.status = "pending";
 	const rider = await get(id);
 	const status = rider.profileStatus;
 	status.bankDetailsCompleted = true;
 	return await update(
-		riderTable,
+		usersTable,
 		{
 			id: id,
 		},
@@ -88,16 +84,14 @@ export const updateDocument = async (id, documents) => {
 	const rider = await get(id);
 	const status = rider.profileStatus;
 	status.documentsCompleted = true;
-	const modDocs = documents.map((doc) => {
-		const docs = {
-			name: doc.name,
-			image: doc.image,
-			verified: "pending",
-			rejectionReason: null,
-		};
-	});
+	const modDocs = documents.map(({ name, image }) => ({
+		name,
+		image,
+		verified: "pending",
+		rejectionReason: null,
+	}));
 	return await update(
-		riderTable,
+		usersTable,
 		{
 			id: id,
 		},
@@ -118,7 +112,7 @@ export const submitProfile = async (id) => {
 		status.documentsCompleted
 	) {
 		return await update(
-			riderTable,
+			usersTable,
 			{ id: id },
 			{
 				reviewStatus: "pending",

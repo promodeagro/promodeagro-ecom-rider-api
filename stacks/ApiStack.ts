@@ -1,16 +1,28 @@
-import { StackContext, Api, Table, Config, Bucket, Function } from "sst/constructs";
-import * as iam from "aws-cdk-lib/aws-iam";
+import { UserPool, UserPoolClient } from "aws-cdk-lib/aws-cognito";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
+import * as iam from "aws-cdk-lib/aws-iam";
+import * as dotenv from 'dotenv';
+import { Api, Bucket, Cognito, StackContext, Table } from "sst/constructs";
+dotenv.config();
 
 
 export function API({ app, stack }: StackContext) {
 
   const isProd = app.stage == "prod"
 
-  const SMS_AUTH = new Config.Secret(stack, "SMS_AUTH");
-  const SMS_AUTH_TOKEN = new Config.Secret(stack, "SMS_AUTH_TOKEN");
-  const JWT_SECRET = new Config.Secret(stack, "JWT_SECRET");
-  const JWT_REFRESH_SECRET = new Config.Secret(stack, "JWT_REFRESH_SECRET");
+  const userPool = isProd ? process.env.COGNITO_USER_POOL_PROD : process.env.COGNITO_USER_POOL_DEV
+  const clientPool = isProd ? process.env.COGNITO_CLIENT_POOL_PROD : process.env.COGNITO_CLIENT_POOL_DEV
+
+  const cognito = new Cognito(stack, "Auth", {
+    cdk: {
+      userPool: UserPool.fromUserPoolId(stack, "UserPool", userPool!),
+      userPoolClient: UserPoolClient.fromUserPoolClientId(
+        stack,
+        "UserPoolClient",
+        clientPool!
+      ),
+    },
+  })
 
   const mediaBucket = new Bucket(stack, "mediaBucket", {
     name: isProd ? "promodeagro-rider-media-bucket" : "dev-promodeagro-rider-media-bucket",
@@ -21,9 +33,7 @@ export function API({ app, stack }: StackContext) {
         allowedMethods: ["GET", "PUT", "POST"],
       },
     ],
-
   });
-
 
   const getObjectPolicy = new iam.PolicyStatement({
     actions: ["s3:GetObject"],
@@ -80,48 +90,70 @@ export function API({ app, stack }: StackContext) {
     stack,
     "ordersTable", {
     cdk: { table: dynamodb.Table.fromTableArn(stack, "ORDER_TABLE", isProd ? "arn:aws:dynamodb:ap-south-1:851725323791:table/prod-promodeagro-admin-OrdersTable" : "arn:aws:dynamodb:ap-south-1:851725323791:table/dev-promodeagro-admin-OrdersTable") }
-  }
-  )
+  })
 
-  const authorizerFun = new Function(stack, "Authorizer", {
-    handler: "packages/functions/api/auth/auth.authorizerHandler",
-    bind: [ridersTable, packerTable, JWT_SECRET, JWT_REFRESH_SECRET],
+  const usersTable = new Table(
+    stack,
+    "usersTable", {
+    cdk: { table: dynamodb.Table.fromTableArn(stack, "USERS_TABLE", isProd ? "arn:aws:dynamodb:ap-south-1:851725323791:table/prod-promodeagro-admin-promodeagroUsers" : "arn:aws:dynamodb:ap-south-1:851725323791:table/dev-promodeagro-admin-promodeagroUsers") }
   })
 
   const api = new Api(stack, "api", {
     authorizers: {
-      myAuthorizer: {
-        type: "lambda",
-        function: authorizerFun,
-        resultsCacheTtl: "30 seconds",
-      }
+      UserPoolAuthorizer: {
+        type: "user_pool",
+        userPool: {
+          id: cognito.userPoolId,
+          clientIds: [cognito.userPoolClientId],
+        },
+      },
     },
     defaults: {
-      authorizer: "myAuthorizer",
+      authorizer: "UserPoolAuthorizer",
       function: {
-        bind: [ridersTable, packerTable, runsheetTable, ordersTable],
+        bind: [ridersTable, packerTable, runsheetTable, ordersTable, usersTable],
       }
     },
     routes: {
       "POST /auth/signin": {
         authorizer: "none",
         function: {
-          handler: "packages/functions/api/auth/auth.signin",
-          bind: [SMS_AUTH, SMS_AUTH_TOKEN, JWT_SECRET, JWT_REFRESH_SECRET]
+          handler: "packages/functions/api/auth/auth.signinHandler",
+          environment: {
+            USER_POOL_ID: cognito.userPoolId,
+            COGNITO_CLIENT: cognito.userPoolClientId,
+          },
+          permissions: [
+            "cognito-idp:AdminCreateUser",
+            "cognito-idp:AdminConfirmSignUp",
+            "cognito-idp:AdminUpdateUserAttributes",
+            "cognito-idp:AdminSetUserPassword",
+            "cognito-idp:AdminInitiateAuth"
+          ],
+
         }
       },
       "POST /auth/validate-otp": {
         authorizer: "none",
         function: {
           handler: "packages/functions/api/auth/auth.validateOtpHandler",
-          bind: [JWT_SECRET, JWT_REFRESH_SECRET]
+          environment: {
+            USER_POOL_ID: cognito.userPoolId,
+            COGNITO_CLIENT: cognito.userPoolClientId,
+          },
+          permissions: [
+            "cognito-idp:AdminCreateUser",
+            "cognito-idp:AdminConfirmSignUp",
+            "cognito-idp:AdminUpdateUserAttributes",
+            "cognito-idp:AdminSetUserPassword",
+            "cognito-idp:AdminInitiateAuth"
+          ],
         }
       },
       "POST /auth/refresh-token": {
         authorizer: "none",
         function: {
           handler: "packages/functions/api/auth/auth.refreshAccessTokenHandler",
-          bind: [JWT_SECRET, JWT_REFRESH_SECRET]
         }
       },
       "PUT /rider/personal-details": "packages/functions/api/rider/update.updatePersonalDetails",
@@ -157,38 +189,37 @@ export function API({ app, stack }: StackContext) {
 
   const packerApi = new Api(stack, "packerApi", {
     authorizers: {
-      myAuthorizer: {
-        type: "lambda",
-        function: authorizerFun,
-        resultsCacheTtl: "30 seconds",
-      }
+      UserPoolAuthorizer: {
+        type: "user_pool",
+        userPool: {
+          id: cognito.userPoolId,
+          clientIds: [cognito.userPoolClientId],
+        },
+      },
     },
     defaults: {
-      authorizer: "myAuthorizer",
-      function: {
-        bind: [packerTable, ordersTable],
-      }
+      authorizer: "UserPoolAuthorizer",
+      //   function: {
+      //     bind: [packerTable, ordersTable],
+      //   }
     },
     routes: {
       "POST /auth/signin": {
         authorizer: "none",
         function: {
           handler: "packages/functions/api/auth/auth.signin",
-          bind: [SMS_AUTH, SMS_AUTH_TOKEN, JWT_SECRET, JWT_REFRESH_SECRET]
         }
       },
       "POST /auth/validate-otp": {
         authorizer: "none",
         function: {
           handler: "packages/functions/api/auth/auth.validateOtpHandler",
-          bind: [JWT_SECRET, JWT_REFRESH_SECRET]
         }
       },
       "POST /auth/refresh-token": {
         authorizer: "none",
         function: {
           handler: "packages/functions/api/auth/auth.refreshAccessTokenHandler",
-          bind: [JWT_SECRET, JWT_REFRESH_SECRET]
         }
       },
       "GET /packer/order": {
@@ -217,9 +248,5 @@ export function API({ app, stack }: StackContext) {
   stack.addOutputs({
     RiderEndpoint: api.url,
     PackerEndpoint: packerApi.url,
-    sms_auth: SMS_AUTH.name,
-    sms_auth_token: SMS_AUTH_TOKEN.name,
-    jwt_secret: JWT_SECRET.name,
-    jwt_refresh_secret: JWT_REFRESH_SECRET.name
   });
 }
