@@ -1,6 +1,6 @@
 import middy from "@middy/core";
 import { z } from "zod";
-import { signin, validateOtp } from ".";
+import { signin, validateOtp, refreshTokens } from ".";
 import { bodyValidator } from "../util/bodyValidator";
 import { errorHandler } from "../util/errorHandler";
 
@@ -41,9 +41,9 @@ const refreshTokenSchema = z.object({
 	refreshToken: z.string(),
 });
 
-// export const refreshAccessTokenHandler = middy(async (event) => {
-// 	const { refreshToken } = JSON.parse(event.body);
-// 	return refreshAccessToken(refreshToken);
-// })
-// 	.use(bodyValidator(refreshTokenSchema))
-// 	.use(errorHandler());
+export const refreshAccessTokenHandler = middy(async (event) => {
+	const { refreshToken } = JSON.parse(event.body);
+	return refreshTokens(refreshToken);
+})
+	.use(bodyValidator(refreshTokenSchema))
+	.use(errorHandler());

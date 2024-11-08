@@ -154,6 +154,15 @@ export function API({ app, stack }: StackContext) {
         authorizer: "none",
         function: {
           handler: "packages/functions/api/auth/auth.refreshAccessTokenHandler",
+          environment: {
+            USER_POOL_ID: cognito.userPoolId,
+            COGNITO_CLIENT: cognito.userPoolClientId,
+          },
+          permissions: [
+            "cognito-idp:AdminInitiateAuth"
+          ],
+
+
         }
       },
       "PUT /rider/personal-details": "packages/functions/api/rider/update.updatePersonalDetails",

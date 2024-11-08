@@ -153,3 +153,20 @@ const utcDate = (date) => {
 
 	return `${year}-${month}-${day} ${hours}:${minutes}:${seconds} UTC`;
 };
+
+export const refreshTokens = async (refreshToken) => {
+	const command = new AdminInitiateAuthCommand({
+		AuthFlow: "REFRESH_TOKEN_AUTH",
+		UserPoolId: process.env.USER_POOL_ID,
+		ClientId: process.env.COGNITO_CLIENT,
+		AuthParameters: {
+			REFRESH_TOKEN: refreshToken,
+		},
+	});
+	const res = await cognitoClient.send(command);
+	return {
+		accessToken: res.AuthenticationResult.AccessToken,
+		idToken: res.AuthenticationResult.AccessToken,
+		expiresIn: res.AuthenticationResult.ExpiresIn,
+	};
+};
