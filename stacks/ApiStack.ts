@@ -165,10 +165,21 @@ export function API({ app, stack }: StackContext) {
 
         }
       },
+      "POST /rider": {
+        authorizer: "none",
+        function: {
+          handler: "packages/functions/api/rider/update.createRiderHandler",
+          environment: {
+            USER_POOL_ID: cognito.userPoolId,
+            COGNITO_CLIENT: cognito.userPoolClientId,
+          },
+          permissions: [
+            "cognito-idp:AdminCreateUser"],
+        }
+      },
       "PUT /rider/personal-details": "packages/functions/api/rider/update.updatePersonalDetails",
       "PUT /rider/bank-details": "packages/functions/api/rider/update.updatebankDetails",
       "PUT /rider/document-details": "packages/functions/api/rider/update.updateDocumentDetails",
-      "PUT /rider/submit/{id}": "packages/functions/api/rider/update.submitRiderProfile",
       "GET /rider/{id}/runsheet": "packages/functions/api/runsheet/runsheet.listRunsheetsHandler",
       "GET /rider/{id}/runsheet/{runsheetId}": "packages/functions/api/runsheet/runsheet.getRunsheetHandler",
       "GET /rider/{id}/runsheet/{runsheetId}/accept": "packages/functions/api/runsheet/runsheet.acceptRunsheetHandler",

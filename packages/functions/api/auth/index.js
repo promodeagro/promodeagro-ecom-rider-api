@@ -6,11 +6,9 @@ import {
 } from "@aws-sdk/client-cognito-identity-provider";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, QueryCommand } from "@aws-sdk/lib-dynamodb";
-import crypto from "crypto";
 import { Table } from "sst/node/table";
-import { update } from "../common/db";
-import { createRider } from "../rider/index";
-
+import { findById } from "../common/db";
+import jwt from "jsonwebtoken";
 const client = new DynamoDBClient({ region: "ap-south-1" });
 const docClient = DynamoDBDocumentClient.from(client);
 
@@ -43,20 +41,6 @@ export const numberExists = async (number) => {
 	return res.Items;
 };
 
-export const saveOtp = async (id, otp, userType) => {
-	await update(
-		getTableName(userType),
-		{
-			id: id,
-		},
-		{
-			otp: otp,
-			otpExpire: Math.floor(Date.now() / 1000) + 180,
-			updatedAt: new Date().toISOString(),
-		}
-	);
-};
-
 export const validateOtp = async ({ number, code, session }) => {
 	// Verify OTP
 	const command = new RespondToAuthChallengeCommand({
@@ -79,10 +63,13 @@ export const validateOtp = async ({ number, code, session }) => {
 			}),
 		};
 	}
+	const idTokenDocoded = jwt.decode(response.AuthenticationResult?.IdToken);
+	const user = await findById(usersTable, idTokenDocoded["custom:userId"]);
 	return {
 		statusCode: 200,
 		body: JSON.stringify({
 			message: "Signed in successfully",
+			user: user,
 			tokens: {
 				accessToken: response.AuthenticationResult?.AccessToken,
 				idToken: response.AuthenticationResult?.IdToken,
@@ -93,34 +80,6 @@ export const validateOtp = async ({ number, code, session }) => {
 };
 
 export const signin = async ({ number }) => {
-	const item = await numberExists(number);
-	if (item && item.length > 0) {
-		const response = await initiateAuth(number);
-		return {
-			statusCode: 200,
-			body: JSON.stringify({
-				message: "OTP sent successfully",
-				session: response.Session,
-			}),
-		};
-	}
-	const userId = crypto.randomUUID();
-	const date = new Date();
-	const utc = utcDate(date);
-	const createCommand = new AdminCreateUserCommand({
-		UserPoolId: process.env.USER_POOL_ID,
-		Username: `+91${number}`,
-		UserAttributes: [
-			{ Name: "phone_number", Value: `+91${number}` },
-			{ Name: "custom:userId", Value: userId },
-			{ Name: "custom:role", Value: "rider" },
-			{ Name: "custom:createdAt", Value: utc },
-			{ Name: "phone_number_verified", Value: "true" },
-		],
-		MessageAction: "SUPPRESS",
-	});
-	const res = await cognitoClient.send(createCommand);
-	await createRider(number);
 	const response = await initiateAuth(number);
 	return {
 		statusCode: 200,
@@ -129,6 +88,22 @@ export const signin = async ({ number }) => {
 			session: response.Session,
 		}),
 	};
+};
+
+export const AdminCreateRider = async (number, id, date) => {
+	const createCommand = new AdminCreateUserCommand({
+		UserPoolId: process.env.USER_POOL_ID,
+		Username: `+91${number}`,
+		UserAttributes: [
+			{ Name: "phone_number", Value: `+91${number}` },
+			{ Name: "custom:userId", Value: id },
+			{ Name: "custom:role", Value: "rider" },
+			{ Name: "custom:createdAt", Value: date },
+			{ Name: "phone_number_verified", Value: "true" },
+		],
+		MessageAction: "SUPPRESS",
+	});
+	return await cognitoClient.send(createCommand);
 };
 
 const initiateAuth = async (number) => {
@@ -143,7 +118,7 @@ const initiateAuth = async (number) => {
 	return await cognitoClient.send(command);
 };
 
-const utcDate = (date) => {
+export const utcDate = (date) => {
 	const year = date.getUTCFullYear();
 	const month = String(date.getUTCMonth() + 1).padStart(2, "0"); // Months are zero-based
 	const day = String(date.getUTCDate()).padStart(2, "0");

@@ -1,11 +1,9 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import {
-	DynamoDBDocumentClient,
-	GetCommand
-} from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocumentClient, GetCommand } from "@aws-sdk/lib-dynamodb";
 import crypto from "crypto";
 import { Table } from "sst/node/table";
-import { save, update } from "../common/db";
+import { findById, save, update } from "../common/db";
+import { AdminCreateRider, utcDate } from "../auth";
 
 const client = new DynamoDBClient({ region: "ap-south-1" });
 const docClient = DynamoDBDocumentClient.from(client);
@@ -13,24 +11,31 @@ const docClient = DynamoDBDocumentClient.from(client);
 const ridersTable = Table.ridersTable.tableName;
 const usersTable = Table.usersTable.tableName;
 
-export const createRider = async (number) => {
+export const createRider = async (req) => {
 	const id = crypto.randomUUID();
 	const rider = {
 		id: id,
-		number: number,
-		profileStatus: {
-			personalInfoCompleted: false,
-			bankDetailsCompleted: false,
-			documentsCompleted: false,
-		},
-		personalDetails: {},
-		bankDetails: {},
-		documents: {},
-		reviewStatus: "not_submitted",
-		submittedAt: null,
+		number: req.personalDetails.number,
+		profileStatus: {},
+		personalDetails: req.personalDetails,
+		bankDetails: req.bankDetails,
+		documents: req.documents.map(({ name, image }) => ({
+			name,
+			image,
+			verified: "pending",
+			rejectionReason: null,
+		})),
+		reviewStatus: "pending",
+		submittedAt: new Date().toISOString(),
+		updatedAt: new Date().toISOString(),
 		accountVerified: false,
 	};
-	return await save(usersTable, rider);
+	const date = new Date();
+	const utc = utcDate(date);
+	const res = await AdminCreateRider(req.personalDetails.number, id, utc);
+	console.log(JSON.stringify(res, null, 2));
+	await save(usersTable, rider);
+	return await findById(usersTable, id);
 };
 
 export const get = async (id) => {
@@ -46,9 +51,7 @@ export const get = async (id) => {
 
 export const updatePersonal = async (id, item) => {
 	const rider = await get(id);
-	console.log("rider ", rider);
 	const status = rider.profileStatus;
-	status.personalInfoCompleted = true;
 	return await update(
 		usersTable,
 		{
@@ -66,7 +69,6 @@ export const updatebank = async (id, item) => {
 	item.status = "pending";
 	const rider = await get(id);
 	const status = rider.profileStatus;
-	status.bankDetailsCompleted = true;
 	return await update(
 		usersTable,
 		{
@@ -80,16 +82,12 @@ export const updatebank = async (id, item) => {
 	);
 };
 
-export const updateDocument = async (id, documents) => {
+export const updateDocument = async (id, document) => {
 	const rider = await get(id);
-	const status = rider.profileStatus;
-	status.documentsCompleted = true;
-	const modDocs = documents.map(({ name, image }) => ({
-		name,
-		image,
-		verified: "pending",
-		rejectionReason: null,
-	}));
+	const documents = rider.documents;
+	const modDocs = documents.map((doc) =>
+		doc.name === document.name ? { ...doc, document } : doc
+	);
 	return await update(
 		usersTable,
 		{
@@ -97,34 +95,7 @@ export const updateDocument = async (id, documents) => {
 		},
 		{
 			documents: modDocs,
-			profileStatus: status,
 			updatedAt: new Date().toISOString(),
 		}
 	);
-};
-
-export const submitProfile = async (id) => {
-	const rider = await get(id);
-	const status = rider.profileStatus;
-	if (
-		status.personalInfoCompleted &&
-		status.bankDetailsCompleted &&
-		status.documentsCompleted
-	) {
-		return await update(
-			usersTable,
-			{ id: id },
-			{
-				reviewStatus: "pending",
-				submittedAt: new Date().toISOString(),
-				updatedAt: new Date().toISOString(),
-			}
-		);
-	}
-	return {
-		statusCode: 400,
-		body: JSON.stringify({
-			message: "need to completed profile first",
-		}),
-	};
 };
