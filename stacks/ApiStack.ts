@@ -99,7 +99,7 @@ export function API({ app, stack }: StackContext) {
   })
 
   const api = new Api(stack, "api", {
-    authorizers: {
+    authorizers: isProd ? {
       UserPoolAuthorizer: {
         type: "user_pool",
         userPool: {
@@ -107,10 +107,11 @@ export function API({ app, stack }: StackContext) {
           clientIds: [cognito.userPoolClientId],
         },
       },
-    },
+    } : undefined,
     defaults: {
-      authorizer: "UserPoolAuthorizer",
+      authorizer: isProd ? "UserPoolAuthorizer" : "none",
       function: {
+        timeout: 15,
         bind: [ridersTable, packerTable, runsheetTable, ordersTable, usersTable],
       }
     },
@@ -165,7 +166,7 @@ export function API({ app, stack }: StackContext) {
 
         }
       },
-      "POST /rider": {
+      "POST /register": {
         authorizer: "none",
         function: {
           handler: "packages/functions/api/rider/update.createRiderHandler",
@@ -198,6 +199,7 @@ export function API({ app, stack }: StackContext) {
         }
       },
       "GET /rider/uploadUrl": {
+        authorizer: "none",
         function: {
           handler:
             "packages/functions/api/media/getPreSignedS3url.handler",

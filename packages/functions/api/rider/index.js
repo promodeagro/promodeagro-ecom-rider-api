@@ -29,11 +29,11 @@ export const createRider = async (req) => {
 		submittedAt: new Date().toISOString(),
 		updatedAt: new Date().toISOString(),
 		accountVerified: false,
+		role: "rider",
 	};
 	const date = new Date();
 	const utc = utcDate(date);
 	const res = await AdminCreateRider(req.personalDetails.number, id, utc);
-	console.log(JSON.stringify(res, null, 2));
 	await save(usersTable, rider);
 	return await findById(usersTable, id);
 };
