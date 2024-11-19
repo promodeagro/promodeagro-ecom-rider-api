@@ -2,13 +2,16 @@ import {
 	AdminCreateUserCommand,
 	AdminInitiateAuthCommand,
 	CognitoIdentityProviderClient,
+	GlobalSignOutCommand,
+	InitiateAuthCommand,
 	RespondToAuthChallengeCommand,
 } from "@aws-sdk/client-cognito-identity-provider";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, QueryCommand } from "@aws-sdk/lib-dynamodb";
+import jwt from "jsonwebtoken";
 import { Table } from "sst/node/table";
 import { findById } from "../common/db";
-import jwt from "jsonwebtoken";
+
 const client = new DynamoDBClient({ region: "ap-south-1" });
 const docClient = DynamoDBDocumentClient.from(client);
 
@@ -16,13 +19,7 @@ const cognitoClient = new CognitoIdentityProviderClient({
 	region: "ap-south-1",
 });
 
-const riderTable = Table.ridersTable.tableName;
-const packerTable = Table.packerTable.tableName;
 const usersTable = Table.usersTable.tableName;
-
-const getTableName = (userType) => {
-	return userType === "rider" ? riderTable : packerTable;
-};
 
 export const numberExists = async (number) => {
 	const params = {
@@ -144,4 +141,51 @@ export const refreshTokens = async (refreshToken) => {
 		idToken: res.AuthenticationResult.AccessToken,
 		expiresIn: res.AuthenticationResult.ExpiresIn,
 	};
+};
+
+export const signout = async (accessToken) => {
+	const signOutParams = {
+		AccessToken: accessToken,
+	};
+	const command = new GlobalSignOutCommand(signOutParams);
+	await cognitoClient.send(command);
+};
+
+export const packerSignin = async ({ email, password }) => {
+	const authResponse = await initiateEmailAuth({ email, password });
+	const accessToken = authResponse.AuthenticationResult?.AccessToken;
+	const idToken = authResponse.AuthenticationResult?.IdToken;
+	const refreshToken = authResponse.AuthenticationResult?.RefreshToken;
+
+	const decodedHeader = jwt.decode(idToken, { complete: true });
+	if (!(decodedHeader.payload["custom:role"] === "packer")) {
+		return {
+			statusCode: 403,
+			body: "Unauthorized",
+		};
+	}
+	return {
+		statusCode: 200,
+		body: JSON.stringify({
+			accessToken: accessToken,
+			idToken: idToken,
+			refreshToken: refreshToken,
+		}),
+	};
+};
+
+const initiateEmailAuth = async ({ email, password }) => {
+	console.log(process.env.USER_POOL_ID);
+	console.log(process.env.COGNITO_CLIENT);
+	const authParams = {
+		AuthFlow: "USER_PASSWORD_AUTH",
+		UserPoolId: process.env.USER_POOL_ID,
+		ClientId: process.env.COGNITO_CLIENT,
+		AuthParameters: {
+			USERNAME: email,
+			PASSWORD: password,
+		},
+	};
+	const authCommand = new InitiateAuthCommand(authParams);
+	return await cognitoClient.send(authCommand);
 };

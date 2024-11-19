@@ -4,6 +4,18 @@ import { bodyValidator } from "../util/bodyValidator";
 import { errorHandler } from "../util/errorHandler";
 import { updatePersonal, updatebank, updateDocument, createRider } from ".";
 
+const docs = [
+	"userPhoto",
+	"aadharFront",
+	"aadharback",
+	"pan",
+	"drivingFront",
+	"drivingBack",
+	"VehicleImage",
+	"rcFront",
+	"rcBack",
+];
+
 const bankDetailsSchema = z.object({
 	bankName: z.string().min(3, "Bank name must be at least 3 characters"),
 	acc: z.string().min(1, "Account number is required"),
@@ -12,7 +24,7 @@ const bankDetailsSchema = z.object({
 
 const documentSchema = z.object({
 	document: z.object({
-		name: z.string(),
+		name: z.enum(docs),
 		image: z.string().url(),
 	}),
 });
@@ -45,7 +57,7 @@ const riderSchema = z.object({
 	bankDetails: bankDetailsSchema,
 	documents: z.array(
 		z.object({
-			name: z.string(),
+			name: z.enum(docs),
 			image: z.string().url(),
 		})
 	),
@@ -62,19 +74,37 @@ export const updatePersonalDetails = middy(async (event) => {
 	const { id, ...req } = JSON.parse(event.body);
 	return await updatePersonal(id, req);
 })
-	.use(bodyValidator(personalDetailsSchema))
+	.use(
+		bodyValidator(
+			personalDetailsSchema.extend({
+				id: z.string(),
+			})
+		)
+	)
 	.use(errorHandler());
 
 export const updatebankDetails = middy(async (event) => {
 	const { id, ...req } = JSON.parse(event.body);
 	return await updatebank(id, req);
 })
-	.use(bodyValidator(bankDetailsSchema))
+	.use(
+		bodyValidator(
+			bankDetailsSchema.extend({
+				id: z.string(),
+			})
+		)
+	)
 	.use(errorHandler());
 
 export const updateDocumentDetails = middy(async (event) => {
 	const { id, document } = JSON.parse(event.body);
-	return await updateDocument(id, documents);
+	return await updateDocument(id, document);
 })
-	.use(bodyValidator(documentSchema))
+	.use(
+		bodyValidator(
+			documentSchema.extend({
+				id: z.string(),
+			})
+		)
+	)
 	.use(errorHandler());

@@ -2,7 +2,7 @@ import { UserPool, UserPoolClient } from "aws-cdk-lib/aws-cognito";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as dotenv from 'dotenv';
-import { Api, Bucket, Cognito, StackContext, Table } from "sst/constructs";
+import { Function, Api, Bucket, Cognito, StackContext, Table } from "sst/constructs";
 dotenv.config();
 
 
@@ -100,16 +100,18 @@ export function API({ app, stack }: StackContext) {
 
   const api = new Api(stack, "api", {
     authorizers: isProd ? {
-      UserPoolAuthorizer: {
-        type: "user_pool",
-        userPool: {
-          id: cognito.userPoolId,
-          clientIds: [cognito.userPoolClientId],
-        },
-      },
+      myAuthorizer: {
+        type: "lambda",
+        function: new Function(stack, "rider-authorizer", {
+          handler: "packages/functions/api/auth/middleware.riderAuthorizer",
+          environment: {
+            USER_POOL_ID: cognito.userPoolId,
+          }
+        })
+      }
     } : undefined,
     defaults: {
-      authorizer: isProd ? "UserPoolAuthorizer" : "none",
+      authorizer: isProd ? "myAuthorizer" : "none",
       function: {
         timeout: 15,
         bind: [ridersTable, packerTable, runsheetTable, ordersTable, usersTable],
@@ -151,6 +153,17 @@ export function API({ app, stack }: StackContext) {
           ],
         }
       },
+      "POST /auth/signout": {
+        authorizer: "none",
+        function: {
+          handler: "packages/functions/api/auth/auth.signoutHandler",
+          environment: {
+            USER_POOL_ID: cognito.userPoolId,
+            COGNITO_CLIENT: cognito.userPoolClientId,
+          },
+        },
+      },
+
       "POST /auth/refresh-token": {
         authorizer: "none",
         function: {
@@ -187,19 +200,16 @@ export function API({ app, stack }: StackContext) {
       "PUT /rider/{id}/runsheet/{runsheetId}/order/{orderId}/complete": "packages/functions/api/runsheet/runsheet.confirmOrderHandler",
       "PUT /rider/{id}/runsheet/{runsheetId}/order/{orderId}/cancel": "packages/functions/api/runsheet/runsheet.cancelOrderHandler",
       "GET /packer/order": {
-        authorizer: "none",
         function: {
           handler: "packages/functions/api/packer/packer.listOrdersHandler"
         }
       },
       "PATCH /packer/order/{id}": {
-        authorizer: "none",
         function: {
           handler: "packages/functions/api/packer/packer.packOrderHandler"
         }
       },
       "GET /rider/uploadUrl": {
-        authorizer: "none",
         function: {
           handler:
             "packages/functions/api/media/getPreSignedS3url.handler",
@@ -210,32 +220,33 @@ export function API({ app, stack }: StackContext) {
   });
 
   const packerApi = new Api(stack, "packerApi", {
-    authorizers: {
-      UserPoolAuthorizer: {
-        type: "user_pool",
-        userPool: {
-          id: cognito.userPoolId,
-          clientIds: [cognito.userPoolClientId],
-        },
-      },
-    },
+    authorizers: isProd ? {
+      myAuthorizer: {
+        type: "lambda",
+        function: new Function(stack, "packe-authorizer", {
+          handler: "packages/functions/api/auth/middleware.packerAuthorizer",
+          environment: {
+            USER_POOL_ID: cognito.userPoolId,
+          }
+        })
+      }
+    } : undefined,
     defaults: {
-      authorizer: "UserPoolAuthorizer",
-      //   function: {
-      //     bind: [packerTable, ordersTable],
-      //   }
+      authorizer: isProd ? "myAuthorizer" : "none",
+      function: {
+        bind: [usersTable, ordersTable],
+      }
     },
     routes: {
       "POST /auth/signin": {
         authorizer: "none",
         function: {
-          handler: "packages/functions/api/auth/auth.signin",
-        }
-      },
-      "POST /auth/validate-otp": {
-        authorizer: "none",
-        function: {
-          handler: "packages/functions/api/auth/auth.validateOtpHandler",
+          handler: "packages/functions/api/auth/auth.packerSigninHandler",
+          environment: {
+            USER_POOL_ID: cognito.userPoolId,
+            COGNITO_CLIENT: cognito.userPoolClientId,
+          },
+
         }
       },
       "POST /auth/refresh-token": {
@@ -244,18 +255,8 @@ export function API({ app, stack }: StackContext) {
           handler: "packages/functions/api/auth/auth.refreshAccessTokenHandler",
         }
       },
-      "GET /packer/order": {
-        authorizer: "none",
-        function: {
-          handler: "packages/functions/api/packer/packer.listOrdersHandler"
-        }
-      },
-      "PATCH /packer/order/{id}": {
-        authorizer: "none",
-        function: {
-          handler: "packages/functions/api/packer/packer.packOrderHandler"
-        }
-      },
+      "GET /packer/order": "packages/functions/api/packer/packer.listOrdersHandler",
+      "PATCH /packer/order/{id}": "packages/functions/api/packer/packer.packOrderHandler",
       "GET /packer/uploadUrl": {
         function: {
           handler:

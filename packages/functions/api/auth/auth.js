@@ -1,6 +1,6 @@
 import middy from "@middy/core";
 import { z } from "zod";
-import { signin, validateOtp, refreshTokens } from ".";
+import { signout, signin, validateOtp, refreshTokens, packerSignin } from ".";
 import { bodyValidator } from "../util/bodyValidator";
 import { errorHandler } from "../util/errorHandler";
 
@@ -46,4 +46,35 @@ export const refreshAccessTokenHandler = middy(async (event) => {
 	return refreshTokens(refreshToken);
 })
 	.use(bodyValidator(refreshTokenSchema))
+	.use(errorHandler());
+
+const signoutSchema = z.object({
+	accessToken: z.string(),
+});
+
+export const signoutHandler = middy(async (event) => {
+	const { accessToken } = JSON.parse(event.body);
+	await signout(accessToken);
+	return {
+		statusCode: 200,
+		body: JSON.stringify({
+			message: "Successfully signed out",
+		}),
+	};
+})
+	.use(bodyValidator(signoutSchema))
+	.use(errorHandler());
+
+const emailSchema = z.string().email({ message: "invalid email" });
+
+const packerSigninSchema = z.object({
+	email: emailSchema,
+	password: z.string(),
+});
+
+export const packerSigninHandler = middy(async (event) => {
+	const req = JSON.parse(event.body);
+	return await packerSignin(req);
+})
+	.use(bodyValidator(packerSigninSchema))
 	.use(errorHandler());
