@@ -17,6 +17,7 @@ export const createRider = async (req) => {
 		id: id,
 		number: req.personalDetails.number,
 		profileStatus: {},
+		name: req.personalDetails.name,
 		personalDetails: req.personalDetails,
 		bankDetails: req.bankDetails,
 		documents: req.documents.map(({ name, image }) => ({

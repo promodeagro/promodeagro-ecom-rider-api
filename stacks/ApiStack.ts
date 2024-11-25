@@ -38,13 +38,11 @@ export function API({ app, stack }: StackContext) {
   const getObjectPolicy = new iam.PolicyStatement({
     actions: ["s3:GetObject"],
     effect: iam.Effect.ALLOW,
-    resources: [`${mediaBucket.bucketArn}/*`],
+    resources: [mediaBucket.bucketArn + "/*"],
     principals: [new iam.AnyPrincipal()],
   });
 
-  mediaBucket.attachPermissions([
-    getObjectPolicy
-  ])
+  mediaBucket.cdk.bucket.addToResourcePolicy(getObjectPolicy);
 
   const ridersTable = new Table(
     stack,
@@ -92,6 +90,12 @@ export function API({ app, stack }: StackContext) {
     cdk: { table: dynamodb.Table.fromTableArn(stack, "ORDER_TABLE", isProd ? "arn:aws:dynamodb:ap-south-1:851725323791:table/prod-promodeagro-admin-OrdersTable" : "arn:aws:dynamodb:ap-south-1:851725323791:table/dev-promodeagro-admin-OrdersTable") }
   })
 
+  const inventoryTable = new Table(
+    stack,
+    "inventoryTable", {
+    cdk: { table: dynamodb.Table.fromTableArn(stack, "INVENTORY_TABLE", isProd ? "arn:aws:dynamodb:ap-south-1:851725323791:table/prod-promodeagro-admin-inventoryTable" : "arn:aws:dynamodb:ap-south-1:851725323791:table/dev-promodeagro-admin-inventoryTable") }
+  })
+
   const usersTable = new Table(
     stack,
     "usersTable", {
@@ -114,7 +118,7 @@ export function API({ app, stack }: StackContext) {
       authorizer: isProd ? "myAuthorizer" : "none",
       function: {
         timeout: 15,
-        bind: [ridersTable, packerTable, runsheetTable, ordersTable, usersTable],
+        bind: [ridersTable, packerTable, runsheetTable, ordersTable, inventoryTable, usersTable],
       }
     },
     routes: {
@@ -210,6 +214,7 @@ export function API({ app, stack }: StackContext) {
         }
       },
       "GET /rider/uploadUrl": {
+        authorizer: "none",
         function: {
           handler:
             "packages/functions/api/media/getPreSignedS3url.handler",

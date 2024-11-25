@@ -1,21 +1,17 @@
-import { Table } from "sst/node/table";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import {
-	DynamoDBDocumentClient,
-	PutCommand,
-	ScanCommand,
-	GetCommand,
-	UpdateCommand,
-	QueryCommand,
 	BatchGetCommand,
+	DynamoDBDocumentClient,
+	QueryCommand,
+	TransactWriteCommand,
 } from "@aws-sdk/lib-dynamodb";
-import { save, update, findById } from "../common/db";
-import crypto from "crypto";
+import { Table } from "sst/node/table";
+import { findById, update } from "../common/db";
 
 const client = new DynamoDBClient({ region: "ap-south-1" });
 const docClient = DynamoDBDocumentClient.from(client);
 
-const riderTable = Table.ridersTable.tableName;
+const inventoryTable = Table.inventoryTable.tableName;
 const runsheetTable = Table.runsheetTable.tableName;
 const ordersTable = Table.ordersTable.tableName;
 
@@ -55,6 +51,7 @@ export const listRunsheets = async (id) => {
 			id: item.id,
 			orders: totalOrders,
 			pendingOrders,
+			status: item.status,
 			deliveredOrders,
 			amountCollectable: item.amountCollectable,
 		};
@@ -165,7 +162,7 @@ export const cancelOrder = async (runsheetId, orderId, reason) => {
 			}),
 		};
 	}
-	const order = await findById(ordersTable, id);
+	const order = await findById(ordersTable, orderId);
 	if (order.status == "cancelled") {
 		return {
 			statusCode: 400,
@@ -182,8 +179,8 @@ export const cancelOrder = async (runsheetId, orderId, reason) => {
 		TransactItems: [
 			{
 				Update: {
-					TableName: orderTable,
-					Key: { id },
+					TableName: ordersTable,
+					Key: { id: orderId },
 					UpdateExpression:
 						"SET #status = :status, #cancellationData = :cancellationData",
 					ExpressionAttributeNames: {
