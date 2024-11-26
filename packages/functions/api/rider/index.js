@@ -17,7 +17,8 @@ export const createRider = async (req) => {
 		id: id,
 		number: req.personalDetails.number,
 		profileStatus: {},
-		name: req.personalDetails.name,
+		name: cleanName(req.personalDetails.name),
+		s_name: sName(req.personalDetails.name),
 		personalDetails: req.personalDetails,
 		bankDetails: req.bankDetails,
 		documents: req.documents.map(({ name, image }) => ({
@@ -100,3 +101,16 @@ export const updateDocument = async (id, document) => {
 		}
 	);
 };
+
+function cleanName(name) {
+	return name
+		.trim()
+		.toLowerCase()
+		.split("/s+/")
+		.map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+		.join(" ");
+}
+
+function sName(name) {
+	return name.trim().toLowerCase().replace(/\s+/g, "");
+}
