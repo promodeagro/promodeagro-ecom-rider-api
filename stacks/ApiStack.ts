@@ -44,40 +44,6 @@ export function API({ app, stack }: StackContext) {
 
   mediaBucket.cdk.bucket.addToResourcePolicy(getObjectPolicy);
 
-  const ridersTable = new Table(
-    stack,
-    "ridersTable",
-    {
-      fields: {
-        id: "string",
-        number: "string",
-        otp: "string",
-        createdAt: "string",
-      },
-      primaryIndex: { partitionKey: "id" },
-      globalIndexes: {
-        numberIndex: { partitionKey: "number" }
-      }
-    }
-  );
-
-  const packerTable = new Table(
-    stack,
-    "packerTable",
-    {
-      fields: {
-        id: "string",
-        number: "string",
-        otp: "string",
-        createdAt: "string",
-      },
-      primaryIndex: { partitionKey: "id" },
-      globalIndexes: {
-        numberIndex: { partitionKey: "number" }
-      }
-    }
-  );
-
   const runsheetTable = new Table(
     stack,
     "runsheetTable", {
@@ -118,7 +84,7 @@ export function API({ app, stack }: StackContext) {
       authorizer: isProd ? "myAuthorizer" : "none",
       function: {
         timeout: 15,
-        bind: [ridersTable, packerTable, runsheetTable, ordersTable, inventoryTable, usersTable],
+        bind: [runsheetTable, ordersTable, inventoryTable, usersTable],
       }
     },
     routes: {
@@ -220,7 +186,8 @@ export function API({ app, stack }: StackContext) {
             "packages/functions/api/media/getPreSignedS3url.handler",
           bind: [mediaBucket],
         },
-      }
+      },
+      "GET /notification/{id}": "packages/functions/api/notification/notification.listHandler",
     },
   });
 
