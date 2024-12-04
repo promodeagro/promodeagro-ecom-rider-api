@@ -42,10 +42,19 @@ export const listRunsheets = async (id) => {
 		const itemOrderStatuses = item.orders.map(
 			(orderId) => orderStatuses[orderId]
 		);
-		const pendingOrders = itemOrderStatuses.filter(
-			(status) => status !== "delivered"
-		).length;
-		const deliveredOrders = totalOrders - pendingOrders;
+
+		let deliveredOrders = 0;
+		let undeliveredOrders = 0;
+		let pendingOrders = 0;
+		itemOrderStatuses.forEach((status) => {
+			if (status === "delivered") {
+				deliveredOrders++;
+			} else if (status === "undelivered") {
+				undeliveredOrders++;
+			} else {
+				pendingOrders++;
+			}
+		});
 
 		return {
 			id: item.id,
@@ -53,6 +62,7 @@ export const listRunsheets = async (id) => {
 			pendingOrders,
 			status: item.status,
 			deliveredOrders,
+			undeliveredOrders,
 			amountCollectable: item.amountCollectable,
 		};
 	});
@@ -169,12 +179,13 @@ export const cancelOrder = async (runsheetId, orderId, reason) => {
 			body: JSON.stringify({ message: "order already cancelled" }),
 		};
 	}
-	const cancellationData = {
-		status: "cancelled",
-		cancelledAt: new Date().toISOString(),
-		cancelReason: reason,
-		cancellationBy: "rider",
+	const statusDetails = {
+		updatedAt: new Date().toISOString(),
+		reason: reason,
+		updatedBy: "rider",
 	};
+	let status =
+		reason === "rejected by customer" ? "cancelled" : "undelivered";
 	const input = {
 		TransactItems: [
 			{
@@ -182,17 +193,21 @@ export const cancelOrder = async (runsheetId, orderId, reason) => {
 					TableName: ordersTable,
 					Key: { id: orderId },
 					UpdateExpression:
-						"SET #status = :status, #cancellationData = :cancellationData",
+						"SET #status = :status, #statusDetails = :statusDetails",
 					ExpressionAttributeNames: {
 						"#status": "status",
-						"#cancellationData": "cancellationData",
+						"#statusDetails": "statusDetails",
 					},
 					ExpressionAttributeValues: {
-						":status": "cancelled",
-						":cancellationData": cancellationData,
+						":status": status,
+						":statusDetails": statusDetails,
 					},
 				},
 			},
+		],
+	};
+	if (status === "cancelled") {
+		input.TransactItems.push(
 			...order.items.map((item) => ({
 				Update: {
 					TableName: inventoryTable,
@@ -202,9 +217,10 @@ export const cancelOrder = async (runsheetId, orderId, reason) => {
 						":quantity": item.quantity,
 					},
 				},
-			})),
-		],
-	};
+			}))
+		);
+	}
+	console.log(JSON.stringify(input, null, 2));
 	const command = new TransactWriteCommand(input);
 	await docClient.send(command);
 	return {
