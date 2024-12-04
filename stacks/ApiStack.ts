@@ -68,6 +68,12 @@ export function API({ app, stack }: StackContext) {
     cdk: { table: dynamodb.Table.fromTableArn(stack, "USERS_TABLE", isProd ? "arn:aws:dynamodb:ap-south-1:851725323791:table/prod-promodeagro-admin-promodeagroUsers" : "arn:aws:dynamodb:ap-south-1:851725323791:table/dev-promodeagro-admin-promodeagroUsers") }
   })
 
+  const notificationsTable = new Table(
+    stack,
+    "notificationsTable", {
+    cdk: { table: dynamodb.Table.fromTableArn(stack, "NOTIFICATIONS_TABLE", isProd ? "arn:aws:dynamodb:ap-south-1:851725323791:table/prod-promodeagro-admin-notificationsTable" : "arn:aws:dynamodb:ap-south-1:851725323791:table/dev-promodeagro-admin-notificationsTable") }
+  })
+
   const api = new Api(stack, "api", {
     authorizers: isProd ? {
       myAuthorizer: {
@@ -84,7 +90,7 @@ export function API({ app, stack }: StackContext) {
       authorizer: isProd ? "myAuthorizer" : "none",
       function: {
         timeout: 15,
-        bind: [runsheetTable, ordersTable, inventoryTable, usersTable],
+        bind: [notificationsTable, runsheetTable, ordersTable, inventoryTable, usersTable],
       }
     },
     routes: {

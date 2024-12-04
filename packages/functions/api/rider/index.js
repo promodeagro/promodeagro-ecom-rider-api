@@ -8,7 +8,6 @@ import { AdminCreateRider, utcDate } from "../auth";
 const client = new DynamoDBClient({ region: "ap-south-1" });
 const docClient = DynamoDBDocumentClient.from(client);
 
-const ridersTable = Table.ridersTable.tableName;
 const usersTable = Table.usersTable.tableName;
 
 export const createRider = async (req) => {
@@ -17,8 +16,8 @@ export const createRider = async (req) => {
 		id: id,
 		number: req.personalDetails.number,
 		profileStatus: {},
-		name: cleanName(req.personalDetails.name),
-		s_name: sName(req.personalDetails.name),
+		name: cleanName(req.personalDetails.fullName),
+		s_name: sName(req.personalDetails.fullName),
 		personalDetails: req.personalDetails,
 		bankDetails: req.bankDetails,
 		documents: req.documents.map(({ name, image }) => ({

@@ -57,7 +57,7 @@ export const packOrder = async (id, image) => {
 			}),
 		};
 	}
-	if (order.status !== "order placed") {
+	if (order.status !== "order processing") {
 		return {
 			statusCode: 400,
 			body: JSON.stringify({
