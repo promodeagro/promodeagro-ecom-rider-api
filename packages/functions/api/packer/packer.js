@@ -5,16 +5,16 @@ import { errorHandler } from "../util/errorHandler";
 import { listOrders, packOrder } from ".";
 
 export const listOrdersHandler = middy(async (event) => {
-	// let id = event.pathParameters.id;
-	// if (!id) {
-	// 	return {
-	// 		status: 400,
-	// 		body: JSON.stringify({
-	// 			message: "invalid id",
-	// 		}),
-	// 	};
-	// }
-	return await listOrders();
+	let id = event.pathParameters.id;
+	if (!id) {
+		return {
+			status: 400,
+			body: JSON.stringify({
+				message: "invalid id",
+			}),
+		};
+	}
+	return await listOrders(id);
 }).use(errorHandler());
 
 const patchOrderSchema = z.object({
@@ -34,7 +34,7 @@ export const packOrderHandler = middy(async (event) => {
 	}
 	const { action, image } = JSON.parse(event.body);
 	if (action === "pack") {
-		return await packOrder(id,image);
+		return await packOrder(id, image);
 	}
 })
 	.use(bodyValidator(patchOrderSchema))

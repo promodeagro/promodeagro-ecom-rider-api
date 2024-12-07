@@ -1,28 +1,19 @@
-import { Table } from "sst/node/table";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import {
-	DynamoDBDocumentClient,
-	PutCommand,
-	ScanCommand,
-	GetCommand,
-	UpdateCommand,
-	QueryCommand,
-	BatchGetCommand,
-} from "@aws-sdk/lib-dynamodb";
-import { save, update, findById } from "../common/db";
-import crypto from "crypto";
+import { DynamoDBDocumentClient, QueryCommand } from "@aws-sdk/lib-dynamodb";
+import { Table } from "sst/node/table";
+import { findById, update } from "../common/db";
 
 const client = new DynamoDBClient({ region: "ap-south-1" });
 const docClient = DynamoDBDocumentClient.from(client);
 
 const ordersTable = Table.ordersTable.tableName;
 
-export const listOrders = async () => {
+export const listOrders = async (id) => {
 	const params = {
 		TableName: ordersTable,
 		IndexName: "statusCreatedAtIndex",
 		ScanIndexForward: true,
-		KeyConditionExpression: `#s = :status`,
+		KeyConditionExpression: `#s = :status AND #packerId = :packerId`,
 		ProjectionExpression:
 			"#totalPrice, #paymentDetails, #tax, #createdAt, #totalSavings, #items, #deliveryCharges, #subTotal, #deliverySlot, #id",
 		ExpressionAttributeNames: {
@@ -39,7 +30,8 @@ export const listOrders = async () => {
 			"#id": "id",
 		},
 		ExpressionAttributeValues: {
-			":status": "order placed",
+			":status": "order processing",
+			":packerId" : id
 		},
 		Limit: 100,
 	};
