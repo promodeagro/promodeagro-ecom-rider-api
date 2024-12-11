@@ -175,7 +175,7 @@ export function API({ app, stack }: StackContext) {
       "GET /rider/{id}/runsheet/{runsheetId}/accept": "packages/functions/api/runsheet/runsheet.acceptRunsheetHandler",
       "PUT /rider/{id}/runsheet/{runsheetId}/order/{orderId}/complete": "packages/functions/api/runsheet/runsheet.confirmOrderHandler",
       "PUT /rider/{id}/runsheet/{runsheetId}/order/{orderId}/cancel": "packages/functions/api/runsheet/runsheet.cancelOrderHandler",
-      "GET /packer/order": {
+      "GET /packer/{id}/order": {
         function: {
           handler: "packages/functions/api/packer/packer.listOrdersHandler"
         }

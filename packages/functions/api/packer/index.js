@@ -1,5 +1,9 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, QueryCommand } from "@aws-sdk/lib-dynamodb";
+import {
+	DynamoDBDocumentClient,
+	ScanCommand,
+	QueryCommand,
+} from "@aws-sdk/lib-dynamodb";
 import { Table } from "sst/node/table";
 import { findById, update } from "../common/db";
 
@@ -11,13 +15,14 @@ const ordersTable = Table.ordersTable.tableName;
 export const listOrders = async (id) => {
 	const params = {
 		TableName: ordersTable,
-		IndexName: "statusCreatedAtIndex",
-		ScanIndexForward: true,
-		KeyConditionExpression: `#s = :status AND #packerId = :packerId`,
+		IndexName: "statusCreatedAtIndex", // Specify the index name
+		KeyConditionExpression: "#s = :status",
+		FilterExpression: "#packerId = :packerId",
 		ProjectionExpression:
 			"#totalPrice, #paymentDetails, #tax, #createdAt, #totalSavings, #items, #deliveryCharges, #subTotal, #deliverySlot, #id",
 		ExpressionAttributeNames: {
 			"#s": "status",
+			"#packerId": "packerId",
 			"#totalPrice": "totalPrice",
 			"#paymentDetails": "paymentDetails",
 			"#tax": "tax",
@@ -31,7 +36,7 @@ export const listOrders = async (id) => {
 		},
 		ExpressionAttributeValues: {
 			":status": "order processing",
-			":packerId" : id
+			":packerId": id,
 		},
 		Limit: 100,
 	};
