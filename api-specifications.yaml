@@ -1,0 +1,1199 @@
+openapi: 3.0.3
+info:
+  title: PromodeAgro E-commerce Rider APIs
+  description: |
+    Comprehensive API documentation for the PromodeAgro E-commerce Rider Management System.
+    This API provides endpoints for rider authentication, profile management, runsheet operations, and order management.
+  version: 1.0.0
+  contact:
+    name: PromodeAgro API Support
+    email: support@promodeagro.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.promodeagro.com/v1
+    description: Production server
+  - url: https://staging-api.promodeagro.com/v1
+    description: Staging server
+  - url: http://localhost:3000/v1
+    description: Local development server
+
+tags:
+  - name: Authentication
+    description: Rider authentication and authorization endpoints
+  - name: Rider Profile
+    description: Rider profile management and document upload
+  - name: Runsheet Management
+    description: Runsheet operations and order management
+  - name: File Upload
+    description: File upload utilities
+  - name: Notifications
+    description: Rider notification management
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token for authentication
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Error message
+        code:
+          type: string
+          description: Error code
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp of the error
+
+    Success:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Success message
+        data:
+          type: object
+          description: Response data
+
+    # Authentication Schemas
+    SignInRequest:
+      type: object
+      required:
+        - number
+      properties:
+        number:
+          type: string
+          pattern: '^[0-9]{10}$'
+          description: 10-digit mobile number
+          example: "9876543210"
+
+    SignInResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "OTP sent successfully"
+        success:
+          type: boolean
+          example: true
+
+    ValidateOTPRequest:
+      type: object
+      required:
+        - number
+        - otp
+      properties:
+        number:
+          type: string
+          pattern: '^[0-9]{10}$'
+          description: 10-digit mobile number
+          example: "9876543210"
+        otp:
+          type: string
+          pattern: '^[0-9]{6}$'
+          description: 6-digit OTP
+          example: "123456"
+
+    ValidateOTPResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "OTP validated successfully"
+        accessToken:
+          type: string
+          description: JWT access token
+        refreshToken:
+          type: string
+          description: JWT refresh token
+        rider:
+          $ref: '#/components/schemas/Rider'
+
+    RefreshTokenRequest:
+      type: object
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string
+          description: Valid refresh token
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+
+    RefreshTokenResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          description: New JWT access token
+        refreshToken:
+          type: string
+          description: New JWT refresh token
+
+    # Rider Profile Schemas
+    Rider:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique rider identifier
+        number:
+          type: string
+          description: Mobile number
+        fullName:
+          type: string
+          description: Full name of the rider
+        dob:
+          type: string
+          format: date-time
+          description: Date of birth
+        email:
+          type: string
+          format: email
+          description: Email address
+        status:
+          type: string
+          enum: [pending, active, inactive, suspended]
+          description: Rider status
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Address:
+      type: object
+      properties:
+        address1:
+          type: string
+          description: Primary address line
+          example: "123 Main St"
+        address2:
+          type: string
+          description: Secondary address line
+          example: "Apt 4"
+        landmark:
+          type: string
+          description: Nearby landmark
+          example: "Near Park"
+        state:
+          type: string
+          description: State
+          example: "CA"
+        city:
+          type: string
+          description: City
+          example: "Los Angeles"
+        pincode:
+          type: string
+          pattern: '^[0-9]{6}$'
+          description: 6-digit pincode
+          example: "90001"
+
+    Reference:
+      type: object
+      properties:
+        relation:
+          type: string
+          description: Relationship with reference
+          example: "Friend"
+        number:
+          type: string
+          pattern: '^[0-9]{10}$'
+          description: Reference contact number
+          example: "9876543210"
+
+    PersonalDetailsRequest:
+      type: object
+      required:
+        - id
+        - fullName
+        - dob
+        - email
+        - address
+        - reference
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Rider ID
+        fullName:
+          type: string
+          minLength: 2
+          maxLength: 100
+          description: Full name of the rider
+          example: "John Doe"
+        dob:
+          type: string
+          format: date-time
+          description: Date of birth
+          example: "2000-01-01T00:00:00Z"
+        email:
+          type: string
+          format: email
+          description: Email address
+          example: "john.doe@example.com"
+        address:
+          $ref: '#/components/schemas/Address'
+        reference:
+          $ref: '#/components/schemas/Reference'
+
+    BankDetailsRequest:
+      type: object
+      required:
+        - id
+        - bankName
+        - acc
+        - ifsc
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Rider ID
+        bankName:
+          type: string
+          description: Name of the bank
+          example: "Bank of America"
+        acc:
+          type: string
+          pattern: '^[0-9]{9,18}$'
+          description: Bank account number
+          example: "1234567890"
+        ifsc:
+          type: string
+          pattern: '^[A-Z]{4}0[A-Z0-9]{6}$'
+          description: IFSC code
+          example: "BOFA0001234"
+
+    Document:
+      type: object
+      required:
+        - name
+        - image
+      properties:
+        name:
+          type: string
+          enum: [userPhoto, aadharFront, aadharBack, pan, dl, vehicleImage, rcBook]
+          description: Document type
+        image:
+          type: string
+          format: uri
+          description: URL of the uploaded document image
+
+    DocumentDetailsRequest:
+      type: object
+      required:
+        - id
+        - documents
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Rider ID
+        documents:
+          type: array
+          items:
+            $ref: '#/components/schemas/Document'
+          minItems: 1
+          maxItems: 7
+
+    # Runsheet Schemas
+    Runsheet:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique runsheet identifier
+        orders:
+          type: integer
+          description: Total number of orders
+          example: 10
+        pendingOrders:
+          type: integer
+          description: Number of pending orders
+          example: 3
+        deliveredOrders:
+          type: integer
+          description: Number of delivered orders
+          example: 7
+        amountCollectable:
+          type: number
+          format: float
+          description: Total amount to be collected
+          example: 1500.50
+        status:
+          type: string
+          enum: [pending, accepted, in_progress, completed]
+          description: Runsheet status
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Order:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique order identifier
+        status:
+          type: string
+          enum: [pending, picked_up, delivered, cancelled]
+          description: Order status
+        paymentDetails:
+          $ref: '#/components/schemas/PaymentDetails'
+        customerDetails:
+          $ref: '#/components/schemas/CustomerDetails'
+        deliveryAddress:
+          $ref: '#/components/schemas/Address'
+        amount:
+          type: number
+          format: float
+          description: Order amount
+        createdAt:
+          type: string
+          format: date-time
+
+    PaymentDetails:
+      type: object
+      properties:
+        method:
+          type: string
+          enum: [cod, online, wallet]
+          description: Payment method
+        status:
+          type: string
+          enum: [pending, completed, failed]
+          description: Payment status
+        amount:
+          type: number
+          format: float
+          description: Payment amount
+
+    CustomerDetails:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Customer name
+        phone:
+          type: string
+          description: Customer phone number
+        email:
+          type: string
+          format: email
+          description: Customer email
+
+    CompleteOrderRequest:
+      type: object
+      required:
+        - image
+      properties:
+        image:
+          type: string
+          format: uri
+          description: URL of the delivery confirmation image
+
+    CancelOrderRequest:
+      type: object
+      required:
+        - reason
+      properties:
+        reason:
+          type: string
+          minLength: 10
+          maxLength: 500
+          description: Reason for cancellation
+
+    # File Upload Schemas
+    UploadUrlResponse:
+      type: object
+      properties:
+        uploadUrl:
+          type: string
+          format: uri
+          description: Pre-signed S3 URL for file upload
+        fileKey:
+          type: string
+          description: S3 file key
+        expiresIn:
+          type: integer
+          description: URL expiration time in seconds
+
+    # Notification Schemas
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique notification identifier
+        userId:
+          type: string
+          format: uuid
+          description: ID of the user the notification is for
+        title:
+          type: string
+          description: Notification title
+          example: "New Runsheet Assigned"
+        message:
+          type: string
+          description: Notification message body
+          example: "You have been assigned a new runsheet with 10 orders."
+        read:
+          type: boolean
+          description: Read status of the notification
+          example: false
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when the notification was created
+        type:
+          type: string
+          enum: [runsheet_assigned, payment_received, profile_approved, general]
+          description: Type of notification
+
+paths:
+  # Authentication Endpoints
+  /auth/signin:
+    post:
+      tags:
+        - Authentication
+      summary: Sign in with mobile number
+      description: Initiates the sign-in process by sending OTP to the provided mobile number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignInRequest'
+      responses:
+        '200':
+          description: OTP sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignInResponse'
+        '400':
+          description: Invalid mobile number
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/validate-otp:
+    post:
+      tags:
+        - Authentication
+      summary: Validate OTP and get access token
+      description: Validates the OTP and returns access and refresh tokens upon successful validation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ValidateOTPRequest'
+      responses:
+        '200':
+          description: OTP validated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidateOTPResponse'
+        '400':
+          description: Invalid OTP or mobile number
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Invalid OTP
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/refresh-token:
+    post:
+      tags:
+        - Authentication
+      summary: Refresh access token
+      description: Generates a new access token using a valid refresh token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshTokenResponse'
+        '401':
+          description: Invalid refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # Rider Profile Endpoints
+  /rider/personal-details:
+    put:
+      tags:
+        - Rider Profile
+      summary: Update rider personal details
+      description: Updates the personal information of a rider including name, DOB, email, address, and reference
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PersonalDetailsRequest'
+      responses:
+        '200':
+          description: Personal details updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Rider not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /rider/bank-details:
+    put:
+      tags:
+        - Rider Profile
+      summary: Update rider bank details
+      description: Updates the bank account information of a rider
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BankDetailsRequest'
+      responses:
+        '200':
+          description: Bank details updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Rider not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /rider/document-details:
+    put:
+      tags:
+        - Rider Profile
+      summary: Update rider document details
+      description: Updates the document information of a rider including photos and identity documents
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DocumentDetailsRequest'
+      responses:
+        '200':
+          description: Document details updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Rider not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /rider/submit/{id}:
+    put:
+      tags:
+        - Rider Profile
+      summary: Submit rider profile for approval
+      description: Submits the rider profile for review and approval
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Rider ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - id
+              properties:
+                id:
+                  type: string
+                  format: uuid
+                  description: Rider ID
+      responses:
+        '200':
+          description: Profile submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+        '400':
+          description: Invalid rider ID or incomplete profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Rider not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # File Upload Endpoints
+  /uploadUrl:
+    get:
+      tags:
+        - File Upload
+      summary: Get pre-signed upload URL
+      description: Generates a pre-signed S3 URL for file upload
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: fileName
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Name of the file to upload
+          example: "rider_photo.jpg"
+      responses:
+        '200':
+          description: Upload URL generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadUrlResponse'
+        '400':
+          description: Invalid file name
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # Runsheet Management Endpoints
+  /rider/{id}/runsheet:
+    get:
+      tags:
+        - Runsheet Management
+      summary: Get rider runsheets
+      description: Retrieves a list of runsheets for the specified rider
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Rider ID
+      responses:
+        '200':
+          description: Runsheets retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Runsheet'
+        '400':
+          description: Invalid rider ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Rider not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /rider/{id}/runsheet/{runsheetId}:
+    get:
+      tags:
+        - Runsheet Management
+      summary: Get specific runsheet details
+      description: Retrieves detailed information of a specific runsheet including all orders
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Rider ID
+        - name: runsheetId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Runsheet ID
+      responses:
+        '200':
+          description: Runsheet details retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  orders:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Order'
+                  status:
+                    type: string
+                    enum: [pending, accepted, in_progress, completed]
+                  createdAt:
+                    type: string
+                    format: date-time
+                  updatedAt:
+                    type: string
+                    format: date-time
+        '400':
+          description: Invalid rider ID or runsheet ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Rider or runsheet not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /rider/{id}/runsheet/{runsheetId}/accept:
+    get:
+      tags:
+        - Runsheet Management
+      summary: Accept runsheet
+      description: Accepts the specified runsheet for the rider
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Rider ID
+        - name: runsheetId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Runsheet ID
+      responses:
+        '200':
+          description: Runsheet accepted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Runsheet'
+        '400':
+          description: Invalid rider ID or runsheet ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Rider or runsheet not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Runsheet already accepted or in progress
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /rider/{id}/runsheet/{runsheetId}/order/{orderId}/complete:
+    put:
+      tags:
+        - Runsheet Management
+      summary: Complete order
+      description: Confirms the completion of an order within a runsheet
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Rider ID
+        - name: runsheetId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Runsheet ID
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Order ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompleteOrderRequest'
+      responses:
+        '200':
+          description: Order completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Rider, runsheet, or order not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Order already completed or cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /rider/{id}/runsheet/{runsheetId}/order/{orderId}/cancel:
+    put:
+      tags:
+        - Runsheet Management
+      summary: Cancel order
+      description: Cancels a specified order within a runsheet
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Rider ID
+        - name: runsheetId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Runsheet ID
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Order ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelOrderRequest'
+      responses:
+        '200':
+          description: Order cancelled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Rider, runsheet, or order not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Order already completed or cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # Notification Endpoints
+  /rider/{id}/notifications:
+    get:
+      tags:
+        - Notifications
+      summary: Get rider notifications
+      description: Retrieves a list of unread notifications for the specified rider. Based on the provided code, this fetches notifications where 'read' is false and 'ttl' has not expired.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Rider ID
+      responses:
+        '200':
+          description: Notifications retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Notification'
+        '400':
+          description: Invalid rider ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Rider not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error' 
