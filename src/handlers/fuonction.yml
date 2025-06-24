@@ -1,0 +1,16 @@
+endpoints:
+  - path: /auth/signin
+    method: POST
+    summary: Sign in with mobile number
+  - path: /auth/validate-otp
+    method: POST
+    summary: Validate OTP and get access token
+  - path: /auth/refresh-token
+    method: POST
+    summary: Refresh access token
+  - path: /uploadUrl
+    method: GET
+    summary: Get pre-signed upload URL
+  - path: /rider/{id}/notifications
+    method: GET
+    summary: Get rider notifications 

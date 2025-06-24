@@ -1,0 +1,89 @@
+service: promodeagro-rider
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: python3.9
+  stage: dev
+  region: ap-south-1
+  environment:
+    RIDER_TABLE: prod-promodeagro-rider
+    NOTIFICATION_TABLE: rider-NotificationTable
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource:
+        - arn:aws:dynamodb:${self:provider.region}:*:table/prod-promodeagro-rider
+        - arn:aws:dynamodb:${self:provider.region}:*:table/rider-NotificationTable
+
+plugins:
+  - serverless-dotenv-plugin
+  - serverless-offline
+
+functions:
+  signin:
+    handler: src/handlers/signin.handler
+    events:
+      - http:
+          path: auth/signin
+          method: post
+
+  validateOtp:
+    handler: src/handlers/validate_otp.handler
+    events:
+      - http:
+          path: auth/validate-otp
+          method: post
+
+  refreshToken:
+    handler: src/handlers/refresh_token.handler
+    events:
+      - http:
+          path: auth/refresh-token
+          method: post
+
+  uploadUrl:
+    handler: src/handlers/upload_url.handler
+    events:
+      - http:
+          path: uploadUrl
+          method: get
+
+  getNotifications:
+    handler: src/handlers/get_notifications.handler
+    events:
+      - http:
+          path: rider/{id}/notifications
+          method: get
+
+resources:
+  Resources:
+    RiderTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: prod-promodeagro-rider
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+    NotificationTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: rider-NotificationTable
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST

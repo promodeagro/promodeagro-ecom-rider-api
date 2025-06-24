@@ -1,0 +1,223 @@
+openapi: 3.0.3
+info:
+  title: PromodeAgro E-commerce Rider APIs (Filtered)
+  description: |
+    API documentation for Authentication, File Upload, and Notifications.
+  version: 1.0.0
+servers:
+  - url: http://localhost:3000/v1
+    description: Local development server
+tags:
+  - name: Authentication
+    description: Rider authentication and authorization endpoints
+  - name: File Upload
+    description: File upload utilities
+  - name: Notifications
+    description: Rider notification management
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+        code:
+          type: string
+    Success:
+      type: object
+      properties:
+        message:
+          type: string
+        data:
+          type: object
+    Rider:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        number:
+          type: string
+        status:
+          type: string
+    SignInRequest:
+      type: object
+      required:
+        - number
+      properties:
+        number:
+          type: string
+          pattern: '^[0-9]{10}$'
+    SignInResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        success:
+          type: boolean
+    ValidateOTPRequest:
+      type: object
+      required:
+        - number
+        - otp
+      properties:
+        number:
+          type: string
+          pattern: '^[0-9]{10}$'
+        otp:
+          type: string
+          pattern: '^[0-9]{6}$'
+    ValidateOTPResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        rider:
+          $ref: '#/components/schemas/Rider'
+    RefreshTokenRequest:
+      type: object
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string
+    RefreshTokenResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+    UploadUrlResponse:
+      type: object
+      properties:
+        uploadUrl:
+          type: string
+          format: uri
+        fileKey:
+          type: string
+        expiresIn:
+          type: integer
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        title:
+          type: string
+        message:
+          type: string
+        read:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        type:
+          type: string
+paths:
+  /auth/signin:
+    post:
+      tags:
+        - Authentication
+      summary: Sign in with mobile number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignInRequest'
+      responses:
+        '200':
+          description: OTP sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignInResponse'
+  /auth/validate-otp:
+    post:
+      tags:
+        - Authentication
+      summary: Validate OTP and get access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ValidateOTPRequest'
+      responses:
+        '200':
+          description: OTP validated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidateOTPResponse'
+  /auth/refresh-token:
+    post:
+      tags:
+        - Authentication
+      summary: Refresh access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshTokenResponse'
+  /uploadUrl:
+    get:
+      tags:
+        - File Upload
+      summary: Get pre-signed upload URL
+      parameters:
+        - name: fileName
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Upload URL generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadUrlResponse'
+  /rider/{id}/notifications:
+    get:
+      tags:
+        - Notifications
+      summary: Get rider notifications
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Notifications retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Notification' 
