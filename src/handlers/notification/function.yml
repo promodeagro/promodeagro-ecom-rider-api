@@ -1,0 +1,15 @@
+listNotifications:
+  handler: src/handlers/notification/notification.list_notifications_handler
+  events:
+    - http:
+        path: /notification/{id}
+        method: get
+        cors: true
+
+updateNotificationRead:
+  handler: src/handlers/notification/notification.update_notification_read_handler
+  events:
+    - http:
+        path: /notification/{id}/read
+        method: put
+        cors: true 

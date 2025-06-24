@@ -1,0 +1,35 @@
+listRunsheets:
+  handler: src/handlers/runsheet/runsheet.list_runsheets_handler
+  events:
+    - http:
+        path: /rider/{id}/runsheet
+        method: get
+        cors: true
+getRunsheet:
+  handler: src/handlers/runsheet/runsheet.get_runsheet_handler
+  events:
+    - http:
+        path: /rider/{id}/runsheet/{runsheetId}
+        method: get
+        cors: true
+acceptRunsheet:
+  handler: src/handlers/runsheet/runsheet.accept_runsheet_handler
+  events:
+    - http:
+        path: /rider/{id}/runsheet/{runsheetId}/accept
+        method: put
+        cors: true
+confirmOrder:
+  handler: src/handlers/runsheet/runsheet.confirm_order_handler
+  events:
+    - http:
+        path: /rider/{id}/runsheet/{runsheetId}/order/{orderId}/complete
+        method: put
+        cors: true
+cancelOrder:
+  handler: src/handlers/runsheet/runsheet.cancel_order_handler
+  events:
+    - http:
+        path: /rider/{id}/runsheet/{runsheetId}/order/{orderId}/cancel
+        method: put
+        cors: true 
