@@ -1,4 +1,4 @@
-from src.commonfunctions.utils import response
+from src.commonfunctions.dynamodb import response
 
 def handler(event, context):
     params = event.get('queryStringParameters', {}) or {}
