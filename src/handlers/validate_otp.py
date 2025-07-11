@@ -2,6 +2,7 @@ from src.commonfunctions.dynamodb import parse_json_body, response
 import re
 import random
 import string
+from src.commonfunctions.dynamodb import DynamoDBHelper
 
 def validate_phone_number(phone_number):
     """Validate phone number format"""
@@ -37,21 +38,31 @@ def handler(event, context):
                 'success': False
             })
         
-        # Simple OTP validation (for development)
+        # Validate OTP format
         if not otp.isdigit() or len(otp) != 6:
             return response(400, {
                 'message': 'Invalid OTP format. Please enter a 6-digit code.',
                 'success': False
             })
         
+        # Validate OTP using DynamoDB
+        is_valid, message = DynamoDBHelper.validate_otp(validated_number, otp)
+        if not is_valid:
+            return response(400, {
+                'message': message,
+                'success': False
+            })
+        
+        # Delete OTP after successful validation
+        DynamoDBHelper.delete_otp(validated_number)
+        
         # Generate tokens
-        access_token = generate_token()
         refresh_token = generate_token()
+        DynamoDBHelper.store_token(refresh_token, f'RIDER_{validated_number}', validated_number)
         
         return response(200, {
             'message': 'OTP validated successfully',
             'success': True,
-            'accessToken': access_token,
             'refreshToken': refresh_token,
             'rider': {
                 'id': f'RIDER_{validated_number}',

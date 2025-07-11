@@ -1,8 +1,9 @@
-from src.commonfunctions.dynamodb import parse_json_body, response
+from src.commonfunctions.dynamodb import parse_json_body, response, DynamoDBHelper
 import re
 import random
 import string
 import logging
+logging.basicConfig(level=logging.INFO)
 
 def validate_phone_number(phone_number):
     """Validate phone number format"""
@@ -48,6 +49,13 @@ def handler(event, context):
         
         # Log OTP for development (remove in production)
         logging.info(f"Generated OTP {otp} for phone number {validated_number}")
+        
+        # Store OTP in DynamoDB
+        if not DynamoDBHelper.store_otp(validated_number, otp):
+            return response(500, {
+                'message': 'Failed to store OTP. Please try again.',
+                'success': False
+            })
         
         return response(200, {
             'message': 'OTP sent successfully',

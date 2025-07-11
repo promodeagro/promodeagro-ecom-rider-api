@@ -100,11 +100,10 @@ class DynamoDBHelper:
             return False
     
     @staticmethod
-    def store_token(refresh_token, rider_id, phone_number, expires_in_hours=24):
-        """Store refresh token in DynamoDB"""
+    def store_token(refresh_token, rider_id, phone_number, expires_in_seconds=300):
+        """Store refresh token in DynamoDB with 5 minutes expiration"""
         try:
-            expiry_time = datetime.utcnow() + timedelta(hours=expires_in_hours)
-            
+            expiry_time = datetime.utcnow() + timedelta(seconds=expires_in_seconds)
             item = {
                 'id': f"TOKEN_{refresh_token}",
                 'rider_id': rider_id,
@@ -114,7 +113,6 @@ class DynamoDBHelper:
                 'expires_at': expiry_time.isoformat(),
                 'type': 'TOKEN'
             }
-            
             rider_table.put_item(Item=item)
             return True
         except Exception as e:
@@ -220,33 +218,32 @@ class DynamoDBHelper:
         """Get notifications for a rider"""
         try:
             response = notification_table.query(
-                KeyConditionExpression='rider_id = :rider_id',
-                ExpressionAttributeValues={':rider_id': rider_id},
+                KeyConditionExpression='UserId = :user_id',
+                ExpressionAttributeValues={':user_id': rider_id},
                 Limit=limit,
                 ScanIndexForward=False  # Get latest first
             )
-            
             return response.get('Items', [])
         except Exception as e:
             logging.error(f"Failed to get notifications: {e}")
             return []
-    
+
     @staticmethod
     def create_notification(rider_id, title, message, notification_type='info'):
         """Create a new notification"""
         try:
             notification_id = f"NOTIF_{rider_id}_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
-            
+            now = datetime.utcnow().isoformat()
             item = {
+                'UserId': rider_id,
+                'createdAt': now,
                 'id': notification_id,
-                'rider_id': rider_id,
                 'title': title,
                 'message': message,
                 'type': notification_type,
                 'read': False,
-                'created_at': datetime.utcnow().isoformat()
+                'created_at': now
             }
-            
             notification_table.put_item(Item=item)
             return item
         except Exception as e:
