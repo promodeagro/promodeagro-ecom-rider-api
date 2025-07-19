@@ -1,0 +1,14 @@
+getPresignedUploadUrl:
+  handler: src/handlers/media/media.get_presigned_upload_url_handler
+  events:
+    - http:
+        path: /rider/uploadUrl
+        method: get
+        cors: true
+deleteImage:
+  handler: src/handlers/media/media.delete_image_handler
+  events:
+    - http:
+        path: /rider/deleteImage
+        method: get
+        cors: true 

@@ -1,0 +1,44 @@
+service: rider-api-serverless
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: python3.10
+  region: ap-south-1
+  stage: ${opt:stage, 'dev'}
+  environment:
+    USERS_TABLE: ${self:custom.usersTable}
+    RUNSHEET_TABLE: ${self:custom.runsheetTable}
+    ORDERS_TABLE: ${self:custom.ordersTable}
+    INVENTORY_TABLE: ${self:custom.inventoryTable}
+    NOTIFICATIONS_TABLE: ${self:custom.notificationsTable}
+    MEDIA_BUCKET: ${self:custom.mediaBucket}
+    USER_POOL_ID: ${env:USER_POOL_ID, 'ap-south-1_mockpool123'}
+    COGNITO_CLIENT: ${env:COGNITO_CLIENT, 'mockclient123'}
+
+plugins:
+  - serverless-offline
+  - serverless-python-requirements
+  - serverless-dotenv-plugin
+
+custom:
+  dotenv:
+    path: ./.env
+  pythonRequirements:
+    dockerizePip: non-linux
+    layer: true
+    useSpawn: true
+    python: 'venv/Scripts/python.exe'
+  usersTable: ${env:USERS_TABLE, 'your-users-table-name'}
+  runsheetTable: ${env:RUNSHEET_TABLE, 'your-runsheet-table-name'}
+  ordersTable: ${env:ORDERS_TABLE, 'your-orders-table-name'}
+  inventoryTable: ${env:INVENTORY_TABLE, 'your-inventory-table-name'}
+  notificationsTable: ${env:NOTIFICATIONS_TABLE, 'your-notifications-table-name'}
+  mediaBucket: ${env:MEDIA_BUCKET, 'your-media-bucket-name'}
+
+functions:
+  - ${file(src/handlers/auth/function.yml)}
+  - ${file(src/handlers/rider/function.yml)}
+  - ${file(src/handlers/runsheet/function.yml)}
+  - ${file(src/handlers/media/function.yml)}
+  - ${file(src/handlers/notification/function.yml)}

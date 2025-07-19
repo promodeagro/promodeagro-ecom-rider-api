@@ -1,0 +1,40 @@
+{
+  "name": "promodeagro-rider-api",
+  "version": "1.0.0",
+  "description": "Promodeagro E-commerce Rider API - Serverless Python API",
+  "main": "index.js",
+  "scripts": {
+    "start": "python local_server.py",
+    "dev": "python local_server.py",
+    "test": "python -m pytest tests/",
+    "deploy": "serverless deploy",
+    "deploy:dev": "serverless deploy --stage dev",
+    "deploy:prod": "serverless deploy --stage prod",
+    "remove": "serverless remove",
+    "logs": "serverless logs -f",
+    "info": "serverless info",
+    "offline": "serverless offline start",
+    "install-deps": "pip install -r requirements.txt",
+    "setup": "npm run install-deps && echo 'Setup complete!'"
+  },
+  "keywords": [
+    "serverless",
+    "python",
+    "aws",
+    "lambda",
+    "api",
+    "rider",
+    "delivery"
+  ],
+  "author": "Promodeagro Team",
+  "license": "MIT",
+  "devDependencies": {
+    "serverless-dotenv-plugin": "^6.0.0",
+    "serverless-offline": "^14.4.0",
+    "serverless-python-requirements": "^6.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "python": ">=3.11.0"
+  }
+}

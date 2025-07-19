@@ -1,0 +1,28 @@
+signin:
+  handler: src/handlers/auth/auth.signin_handler
+  events:
+    - http:
+        path: /auth/signin
+        method: post
+        cors: true
+validateOtp:
+  handler: src/handlers/auth/auth.validate_otp_handler
+  events:
+    - http:
+        path: /auth/validate-otp
+        method: post
+        cors: true
+signout:
+  handler: src/handlers/auth/auth.signout_handler
+  events:
+    - http:
+        path: /auth/signout
+        method: post
+        cors: true
+refreshToken:
+  handler: src/handlers/auth/auth.refresh_token_handler
+  events:
+    - http:
+        path: /auth/refresh-token
+        method: post
+        cors: true 

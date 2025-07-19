@@ -1,0 +1,28 @@
+registerRider:
+  handler: src/handlers/rider/rider.create_rider_handler
+  events:
+    - http:
+        path: /register
+        method: post
+        cors: true
+updatePersonalDetails:
+  handler: src/handlers/rider/rider.update_personal_details_handler
+  events:
+    - http:
+        path: /rider/personal-details
+        method: put
+        cors: true
+updateBankDetails:
+  handler: src/handlers/rider/rider.update_bank_details_handler
+  events:
+    - http:
+        path: /rider/bank-details
+        method: put
+        cors: true
+updateDocumentDetails:
+  handler: src/handlers/rider/rider.update_document_details_handler
+  events:
+    - http:
+        path: /rider/document-details
+        method: put
+        cors: true 
