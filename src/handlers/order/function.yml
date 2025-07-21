@@ -1,0 +1,21 @@
+createOrder:
+  handler: src/handlers/order/order.create_order_handler
+  events:
+    - http:
+        path: /order
+        method: post
+        cors: true
+getOrder:
+  handler: src/handlers/order/order.get_order_handler
+  events:
+    - http:
+        path: /order/{id}
+        method: get
+        cors: true
+listOrders:
+  handler: src/handlers/order/order.list_orders_handler
+  events:
+    - http:
+        path: /orders
+        method: get
+        cors: true 

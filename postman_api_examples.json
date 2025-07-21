@@ -1,0 +1,142 @@
+{
+  "registerRider": {
+    "method": "POST",
+    "url": "http://localhost:3000/dev/register",
+    "body": {
+      "personalDetails": {
+        "number": "1234567890",
+        "fullName": "Test User",
+        "email": "testuser@example.com",
+        "dob": "1990-01-01",
+        "address": {
+          "address1": "123 Main St",
+          "state": "CA",
+          "city": "Los Angeles",
+          "pincode": "90001"
+        },
+        "reference": {
+          "relation": "Friend",
+          "number": "9876543210"
+        }
+      },
+      "bankDetails": {
+        "bankName": "HBL",
+        "acc": "123456789",
+        "ifsc": "HBL00012345"
+      },
+      "documents": [
+        {
+          "name": "userPhoto",
+          "image": "base64string"
+        }
+      ]
+    }
+  },
+  "signIn": {
+    "method": "POST",
+    "url": "http://localhost:3000/dev/auth/signin",
+    "body": {
+      "number": "1234567890"
+    }
+  },
+  "validateOtp": {
+    "method": "POST",
+    "url": "http://localhost:3000/dev/auth/validate-otp",
+    "body": {
+      "number": "1234567890",
+      "code": "THE_OTP_YOU_RECEIVED"
+    }
+  },
+  "listRunsheets": {
+    "method": "GET",
+    "url": "http://localhost:3000/dev/rider/test-user-uuid/runsheet"
+  },
+  "getRunsheet": {
+    "method": "GET",
+    "url": "http://localhost:3000/dev/rider/test-user-uuid/runsheet/runsheet-001"
+  },
+  "listNotifications": {
+    "method": "GET",
+    "url": "http://localhost:3000/dev/notification/test-user-uuid"
+  },
+  "updatePersonalDetails": {
+    "method": "PUT",
+    "url": "http://localhost:3000/dev/rider/personal-details",
+    "body": {
+      "id": "test-user-uuid",
+      "personalDetails": {
+        "number": "1234567890",
+        "fullName": "Test User",
+        "email": "testuser@example.com",
+        "dob": "1990-01-01",
+        "address": {
+          "address1": "123 Main St",
+          "state": "CA",
+          "city": "Los Angeles",
+          "pincode": "90001"
+        },
+        "reference": {
+          "relation": "Friend",
+          "number": "9876543210"
+        }
+      }
+    }
+  },
+  "updateBankDetails": {
+    "method": "PUT",
+    "url": "http://localhost:3000/dev/rider/bank-details",
+    "body": {
+      "id": "test-user-uuid",
+      "bankDetails": {
+        "bankName": "HBL",
+        "acc": "123456789",
+        "ifsc": "HBL00012345"
+      }
+    }
+  },
+  "updateDocumentDetails": {
+    "method": "PUT",
+    "url": "http://localhost:3000/dev/rider/document-details",
+    "body": {
+      "id": "test-user-uuid",
+      "document": {
+        "name": "userPhoto",
+        "image": "base64string"
+      }
+    }
+  },
+  "getPresignedUploadUrl": {
+    "method": "GET",
+    "url": "http://localhost:3000/dev/rider/uploadUrl?fileName=test.jpg"
+  },
+  "deleteImage": {
+    "method": "GET",
+    "url": "http://localhost:3000/dev/rider/deleteImage?fileName=test.jpg"
+  },
+  "markNotificationRead": {
+    "method": "PUT",
+    "url": "http://localhost:3000/dev/notification/test-user-uuid/read",
+    "body": {
+      "notificationId": "notif-001"
+    }
+  },
+  "acceptRunsheet": {
+    "method": "PUT",
+    "url": "http://localhost:3000/dev/rider/test-user-uuid/runsheet/runsheet-001/accept"
+  },
+  "completeOrder": {
+    "method": "PUT",
+    "url": "http://localhost:3000/dev/rider/test-user-uuid/runsheet/runsheet-001/order/order-1/complete",
+    "body": {
+      "image": "base64string",
+      "via": "cash"
+    }
+  },
+  "cancelOrder": {
+    "method": "PUT",
+    "url": "http://localhost:3000/dev/rider/test-user-uuid/runsheet/runsheet-001/order/order-1/cancel",
+    "body": {
+      "reason": "Customer not available"
+    }
+  }
+} 

@@ -28,135 +28,55 @@ class AuthService:
             expression_attribute_names={'#number': 'number'}
         )
     
-    def validate_otp(self, number: str, code: str, session: str) -> Dict[str, Any]:
-        """Validate OTP and return user data with tokens"""
-        try:
-            response = self.cognito_client.respond_to_auth_challenge(
-                ClientId=self.client_id,
-                ChallengeName='CUSTOM_CHALLENGE',
-                Session=session,
-                ChallengeResponses={
-                    'USERNAME': f'+91{number}',
-                    'ANSWER': code
-                }
-            )
-            
-            if 'AuthenticationResult' not in response:
-                return {
-                    'statusCode': 400,
-                    'body': {
-                        'message': 'Invalid OTP, please try again',
-                        'session': response.get('Session')
-                    }
-                }
-            
-            # Decode ID token to get user ID
-            id_token_decoded = jwt.decode(
-                response['AuthenticationResult']['IdToken'], 
-                options={"verify_signature": False}
-            )
-            user_id = id_token_decoded.get('custom:userId')
-            user = find_by_id(self.users_table, user_id)
-            
+    def validate_otp(self, number: str, code: str, session: str = None) -> Dict[str, Any]:
+        # MOCKED for local testing, session is ignored
+        if code == '123456':
             return {
                 'statusCode': 200,
                 'body': {
-                    'message': 'Signed in successfully',
-                    'user': user,
+                    'message': 'Signed in successfully (mocked)',
+                    'user': {'id': 'mock-user-id', 'number': number},
                     'tokens': {
-                        'accessToken': response['AuthenticationResult']['AccessToken'],
-                        'idToken': response['AuthenticationResult']['IdToken'],
-                        'refreshToken': response['AuthenticationResult']['RefreshToken']
+                        'accessToken': 'mock-access-token',
+                        'idToken': 'mock-id-token',
+                        'refreshToken': 'mock-refresh-token'
                     }
                 }
             }
-            
-        except ClientError as e:
+        else:
             return {
                 'statusCode': 400,
                 'body': {
-                    'message': 'Invalid OTP, please try again',
-                    'error': str(e)
+                    'message': 'Invalid OTP (mocked)',
+                    'error': 'Incorrect OTP'
                 }
             }
     
     def signin(self, number: str) -> Dict[str, Any]:
-        """Initiate signin process and send OTP"""
-        try:
-            response = self.cognito_client.admin_initiate_auth(
-                AuthFlow='CUSTOM_AUTH',
-                UserPoolId=self.user_pool_id,
-                ClientId=self.client_id,
-                AuthParameters={
-                    'USERNAME': f'+91{number}'
-                }
-            )
-            
-            return {
-                'statusCode': 200,
-                'body': {
-                    'message': 'OTP sent successfully',
-                    'session': response['Session']
-                }
+        # MOCKED for local testing
+        return {
+            'statusCode': 200,
+            'body': {
+                'message': 'OTP sent successfully (mocked)',
+                'otp': '123456'  # Return a mock OTP for local testing
             }
-            
-        except ClientError as e:
-            return {
-                'statusCode': 400,
-                'body': {
-                    'message': 'Failed to send OTP',
-                    'error': str(e)
-                }
-            }
+        }
     
     def admin_create_rider(self, number: str, user_id: str, date: str) -> Dict[str, Any]:
-        """Create a new rider user in Cognito"""
-        try:
-            response = self.cognito_client.admin_create_user(
-                UserPoolId=self.user_pool_id,
-                Username=f'+91{number}',
-                UserAttributes=[
-                    {'Name': 'phone_number', 'Value': f'+91{number}'},
-                    {'Name': 'custom:userId', 'Value': user_id},
-                    {'Name': 'custom:role', 'Value': 'rider'},
-                    {'Name': 'custom:createdAt', 'Value': date},
-                    {'Name': 'phone_number_verified', 'Value': 'true'}
-                ],
-                MessageAction='SUPPRESS'
-            )
-            return response
-        except ClientError as e:
-            raise Exception(f"Failed to create rider: {str(e)}")
+        # MOCKED for local testing
+        return {'message': 'Rider created (mocked)'}
     
     def refresh_tokens(self, refresh_token: str) -> Dict[str, Any]:
-        """Refresh access token using refresh token"""
-        try:
-            response = self.cognito_client.admin_initiate_auth(
-                AuthFlow='REFRESH_TOKEN_AUTH',
-                UserPoolId=self.user_pool_id,
-                ClientId=self.client_id,
-                AuthParameters={
-                    'REFRESH_TOKEN': refresh_token
-                }
-            )
-            
-            return {
-                'accessToken': response['AuthenticationResult']['AccessToken'],
-                'idToken': response['AuthenticationResult']['IdToken'],
-                'expiresIn': response['AuthenticationResult']['ExpiresIn']
-            }
-            
-        except ClientError as e:
-            raise Exception(f"Failed to refresh tokens: {str(e)}")
+        # MOCKED for local testing
+        return {
+            'accessToken': 'mock-access-token',
+            'idToken': 'mock-id-token',
+            'expiresIn': 3600
+        }
     
     def signout(self, access_token: str) -> None:
-        """Sign out user by invalidating access token"""
-        try:
-            self.cognito_client.global_sign_out(
-                AccessToken=access_token
-            )
-        except ClientError as e:
-            raise Exception(f"Failed to sign out: {str(e)}")
+        # MOCKED for local testing
+        return None
     
     @staticmethod
     def utc_date(date: datetime) -> str:

@@ -1,15 +1,22 @@
-listRunsheets:
-  handler: src/handlers/runsheet/runsheet.list_runsheets_handler
+createRunsheet:
+  handler: src/handlers/runsheet/runsheet_api.create_runsheet_handler
   events:
     - http:
-        path: /rider/{id}/runsheet
-        method: get
+        path: /runsheet
+        method: post
         cors: true
 getRunsheet:
-  handler: src/handlers/runsheet/runsheet.get_runsheet_handler
+  handler: src/handlers/runsheet/runsheet_api.get_runsheet_handler
   events:
     - http:
-        path: /rider/{id}/runsheet/{runsheetId}
+        path: /runsheet/{id}
+        method: get
+        cors: true
+listRunsheets:
+  handler: src/handlers/runsheet/runsheet_api.list_runsheets_handler
+  events:
+    - http:
+        path: /runsheets
         method: get
         cors: true
 acceptRunsheet:

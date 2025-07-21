@@ -1,9 +1,23 @@
-registerRider:
-  handler: src/handlers/rider/rider.create_rider_handler
+createRider:
+  handler: src/handlers/rider/rider_api.create_rider_handler
   events:
     - http:
-        path: /register
+        path: /rider
         method: post
+        cors: true
+getRider:
+  handler: src/handlers/rider/rider_api.get_rider_handler
+  events:
+    - http:
+        path: /rider/{id}
+        method: get
+        cors: true
+listRiders:
+  handler: src/handlers/rider/rider_api.list_riders_handler
+  events:
+    - http:
+        path: /riders
+        method: get
         cors: true
 updatePersonalDetails:
   handler: src/handlers/rider/rider.update_personal_details_handler
